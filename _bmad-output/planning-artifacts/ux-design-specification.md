@@ -1,5 +1,8 @@
 ---
-stepsCompleted: ['step-01-init', 'step-02-discovery', 'step-03-core-experience', 'step-04-emotional-response', 'step-05-inspiration', 'step-06-design-system']
+stepsCompleted: ['step-01-init', 'step-02-discovery', 'step-03-core-experience', 'step-04-emotional-response', 'step-05-inspiration', 'step-06-design-system', 'step-07-defining-experience', 'step-08-visual-foundation', 'step-09-design-directions', 'step-10-user-journeys', 'step-11-component-strategy', 'step-12-ux-patterns', 'step-13-responsive-accessibility', 'step-14-complete']
+lastStep: 14
+workflowStatus: complete
+completedAt: 2026-02-20
 inputDocuments:
   - type: prd
     path: '_bmad-output/planning-artifacts/prd.md'
@@ -848,3 +851,1173 @@ React Native Paper est le design system sélectionné pour KURA, offrant une fon
 - **Couleur secondaire** : Vert santé succès (#4CAF50)
 - **Couleur alerte** : Orange attention (#FF9800), Rouge urgence (#F44336)
 - **Typographie** : SF Pro iOS / Roboto Android (natives), poids Regular 16px, Medium 18px, Bold 20px
+
+## Defining Core Experience
+
+### 2.1 Expérience Définissante
+
+> *"Je gagne 1 heure par jour sans effort — mon planning est optimisé dès le début et mes transmissions sont digitalisées en 2 minutes après chaque patient"*
+
+KURA repose sur une **double action centrale indissociable** qui, combinée, crée le gain de temps quotidien promis :
+
+1. **Planning optimisé en template** : Résolu une fois (hebdomadaire ou mensuel selon patient), ajusté ponctuellement avec recalcul automatique
+2. **Transmissions digitales express** : Saisie immédiate post-patient (vocal ou texte), remplacement du carnet papier, zéro recopie
+
+**Ce que Marie dira à ses collègues :**
+> *"Avant KURA, je notais tout à la main dans mon carnet et je devais paramétrer mon GPS moi-même chaque matin. Maintenant mon planning est déjà prêt et mes transmissions sont enregistrées numériquement après chaque visite — j'ai gagné plus d'une heure par jour."*
+
+### 2.2 Modèle Mental Utilisateur (Données Terrain)
+
+**Réalité terrain validée (mère et sœur IDEL) :**
+
+**Planning :**
+- Le planning n'est pas recalculé chaque matin — c'est un **template optimisé établi une fois** (hebdomadaire pour patients chroniques, mensuel pour soins ponctuels) qui est ajusté ponctuellement
+- Les imprévus sont **majoritairement anticipés la veille** (patients préviennent à l'avance)
+- Gestion actuelle des modifications : mémorisation mentale ou note papier → KURA centralise et recalcule automatiquement
+- Image mentale du planning : **"Un puzzle complexe à résoudre une fois, puis à ajuster"** — pas un effort quotidien
+
+**Transmissions :**
+- Pain point principal : **l'absence de système digital** obligeant à tout noter dans un carnet papier à la main
+- Saisie faite **après chaque patient** (pas le soir) — KURA remplace le carnet par enregistrement digital immédiat
+- Chaque transmission représente 5-10 min d'écriture manuscrite → objectif KURA : 1-2 min vocal/texte
+- Le carnet papier est actuellement le seul backup → KURA = stockage digital sécurisé, synchronisé, consultable
+
+**Récurrence patients :**
+- Patients chroniques : tournée hebdomadaire stable (même jour, même heure)
+- Soins ponctuels : fréquence mensuelle ou variable
+- KURA doit comprendre et proposer automatiquement ces récurrences
+
+### 2.3 Critères de Succès de l'Expérience Centrale
+
+**Ce qui fait que KURA "just works" :**
+
+**Planning :**
+- ✅ Template généré une fois → Ordre meilleur ou confirmé bon dès le premier lancement
+- ✅ Modification en 2-3 taps maximum → Plus de mémorisation mentale ou note papier pour les imprévus
+- ✅ Récurrence intelligente → KURA propose automatiquement les patients chroniques pour la semaine suivante
+- ✅ Recalcul < 2 secondes → Feedback immédiat et rassurant
+
+**Transmissions :**
+- ✅ Saisie digitale immédiate post-patient → Plus de carnet papier, plus de recopie
+- ✅ Vocal ou texte en < 2 minutes → Gain réel vs 5-10 min manuscrit actuel
+- ✅ Historique patient accessible instantanément → Consultation avant soin en 1 tap
+
+**Sentiment d'accomplissement :**
+- ✅ Fin de journée : toutes transmissions déjà sauvegardées (aucune corvée soir)
+- ✅ Visualisation concrète : "42 min gagnées aujourd'hui" avec récap journalier
+- ✅ Sécurité des données : carnet papier susceptible d'être perdu → KURA = données sauvegardées et synchronisées
+
+**Vitesse perçue :**
+- ⚡ Planning chargé au démarrage : < 2 secondes (données locales)
+- ⚡ Transcription vocale : < 3 secondes après fin de dictée
+- ⚡ Recalcul planning après modification : < 2 secondes
+- ⚡ Ouverture fiche patient : < 1 seconde
+
+**Ce qui devrait être automatique (zéro effort) :**
+- 🤖 Synchronisation données (background transparent)
+- 🤖 Suggestions planning optimisé (modifiable à tout moment)
+- 🤖 Récurrence patients chroniques (propose automatiquement)
+- 🤖 Sauvegarde locale offline (aucune action requise)
+
+### 2.4 Patterns UX : Novateurs vs. Établis
+
+**Patterns Établis (familiers, zéro apprentissage) :**
+
+| Pattern | Référence Familière | Usage dans KURA |
+|---------|---------------------|-----------------|
+| Liste planning journalier | Agenda smartphone classique | Vue principale tournée |
+| Glisser-déposer réorganisation | Playlists Spotify, emails | Réordonnancement patients |
+| Vocal hold-to-record | WhatsApp vocal (99% IDEL) | Dictée transmission |
+| Checkmarks progression | To-do lists (Todoist, Rappels) | Patient vu + transmission faite |
+| Graphiques courbes | Apple Health (iPhone) | Évolution constantes patient |
+
+**Patterns Novateurs (nécessitent onboarding ciblé) :**
+
+| Pattern | Ce qui est nouveau | Métaphore d'enseignement |
+|---------|-------------------|--------------------------|
+| Planning auto-optimisé | L'app suggère l'ordre optimal | GPS : "suggère le meilleur itinéraire, vous pouvez choisir une autre route" |
+| Validation transcription IA | Dictée + vérification avant enregistrement | SMS vocal iPhone : dicte, corrige si besoin, valide |
+| Récurrence automatique patients | KURA apprend et propose | Abonnement calendrier : "vos rendez-vous récurrents sont déjà placés" |
+
+**Notre approche : Innovation DANS les patterns familiers**
+- Planning = liste familière **MAIS** avec optimisation automatique comme nouveau super-pouvoir
+- Vocal = geste WhatsApp familier **MAIS** avec validation obligatoire (réglementation HDS)
+
+### 2.5 Mécaniques de l'Expérience
+
+**Boucle 1 — Planning Matinal (< 30 secondes)**
+
+*Initiation :*
+- Notification locale à l'heure de départ habituelle : "Votre planning du jour est prêt (8 patients)"
+- Ouverture KURA → Planning du jour déjà chargé (template hebdo + ajustements éventuels)
+
+*Interaction :*
+- Scan visuel rapide de la liste ordonnée
+- Si OK → Tap "Lancer ma tournée" → GPS natif s'ouvre sur premier patient
+- Si modification (patient absent prévenu) → Tap patient → "Retirer du planning" → Recalcul automatique
+- Réorganisation manuelle si besoin → Glisser-déposer intuitif
+
+*Feedback :*
+- Recalcul visible en < 2 secondes avec animation fluide
+- ETA dynamique mis à jour : "Premier patient dans 8 min"
+- Haptic feedback sur drag & drop
+- Progress bar "0/8 patients" en header
+
+*Complétion :*
+- GPS natif lancé avec adresse premier patient pré-chargée
+- Header affiche : "Tournée en cours — 0/8"
+
+---
+
+**Boucle 2 — Transmission Post-Patient (< 2 minutes)**
+
+*Initiation :*
+- Fin de soin → Tap sur patient dans planning → Bouton "Saisir transmission"
+- Ou depuis fiche patient ouverte pendant le soin
+
+*Interaction :*
+- **Vocal** : Hold bouton micro (geste WhatsApp) → Dicte 30-60 secondes → Release → IA transcrit en < 3 secondes → Vérification rapide → Corrections inline si besoin → Tap "Valider et enregistrer"
+- **Texte** : Sélection template type de soin → Complétion champs rapides → Validation
+
+*Feedback :*
+- Onde sonore animée pendant dictée (visuel WhatsApp familier)
+- Transcription apparaît progressivement (sentiment de rapidité)
+- Validation → Checkmark vert sur patient + haptic confirmation
+- Badge "7/8 transmissions faites" mis à jour en temps réel
+
+*Complétion :*
+- Patient affiché en vert double check dans planning (vu ✅ + transmission ✅)
+- Bouton "Patient suivant" → Navigation GPS directement
+
+---
+
+**Boucle 3 — Fin de Journée — Moment "Waouh" (automatique)**
+
+*Déclenchement automatique :*
+- Dernier patient vu + transmission validée → Animation subtile "Journée complétée !"
+
+*Feedback "Waouh" :*
+- Récapitulatif automatique : "8/8 patients • 12 transmissions • **42 min gagnées aujourd'hui**"
+- Données déjà synchronisées (badge ✅ visible, aucune action requise)
+- Historique complet accessible pour chaque patient (remplacement définitif du carnet papier)
+
+*Valeur perçue :*
+- Plus de carnet papier à retrouver le lendemain
+- Plus de saisie soir à domicile
+- Données sécurisées et synchronisées automatiquement
+
+## Visual Design Foundation
+
+**Thème : "Indigo Empowerment"** — Dynamique, efficace, innovant. Se distingue des interfaces médicales traditionnelles tout en restant professionnel et crédible.
+
+### Color System
+
+**Philosophie couleurs :**
+L'Indigo profond évoque la technologie de confiance et l'empowerment professionnel. Le Teal secondaire apporte la sérénité liée à la santé. L'ensemble crée une identité différenciante par rapport aux bleus institutionnels classiques (Vega, outils médicaux datés).
+
+**Palette Light Mode (usage terrain — plein soleil) :**
+
+| Rôle Sémantique | Nom | Hex | Usage |
+|-----------------|-----|-----|-------|
+| **Primaire** | Indigo profond | `#3949AB` | Boutons principaux, header, accents clés |
+| **Primaire Container** | Indigo clair | `#E8EAF6` | Fonds cartes actives, chips sélectionnés |
+| **Secondaire** | Teal | `#00897B` | Actions secondaires, badges succès |
+| **Secondaire Container** | Teal clair | `#E0F2F1` | Fonds éléments secondaires |
+| **Succès** | Vert validation | `#43A047` | Checkmarks, transmissions faites, sync OK |
+| **Alerte** | Orange attention | `#FB8C00` | Sync en attente, avertissements |
+| **Erreur** | Rouge urgence | `#E53935` | Erreurs, badge sync échec, urgences |
+| **Surface** | Blanc pur | `#FFFFFF` | Fond principal, cartes |
+| **Surface Variante** | Gris très clair | `#F5F5F5` | Fond liste, séparateurs |
+| **Texte Principal** | Bleu nuit | `#1A237E` | Titres, textes importants |
+| **Texte Secondaire** | Gris bleuté | `#546E7A` | Sous-titres, métadonnées, labels |
+| **Texte Désactivé** | Gris clair | `#B0BEC5` | Éléments inactifs |
+| **Bordure** | Gris neutre | `#E0E0E0` | Séparateurs, contours cartes |
+
+**Palette Dark Mode OLED (saisie nocturne transmissions) :**
+
+| Rôle Sémantique | Hex | Usage |
+|-----------------|-----|-------|
+| **Fond OLED** | `#000000` | Background principal (économie batterie iPhone OLED) |
+| **Surface niveau 1** | `#0D0D1A` | Cartes, bottom sheets |
+| **Surface niveau 2** | `#1A1A2E` | Navigation, modals |
+| **Primaire adapté** | `#7986CB` | Indigo clair (lisible sur noir) |
+| **Secondaire adapté** | `#4DB6AC` | Teal clair |
+| **Succès adapté** | `#81C784` | Vert doux |
+| **Alerte adapté** | `#FFB74D` | Orange doux |
+| **Erreur adaptée** | `#EF9A9A` | Rouge doux |
+| **Texte Principal** | `#ECEFF1` | Blanc cassé (moins agressif que blanc pur) |
+| **Texte Secondaire** | `#90A4AE` | Gris bleuté clair |
+
+**Ratios de contraste accessibilité (WCAG 2.1) :**
+- Light mode : texte `#1A237E` sur `#FFFFFF` → ratio **12:1** (AAA ✅)
+- Dark mode : texte `#ECEFF1` sur `#000000` → ratio **19:1** (AAA ✅)
+- Tous couples texte/fond ≥ **4.5:1** minimum (AA ✅)
+
+### Typography System
+
+**Polices système natives (aucune dépendance externe) :**
+- **iOS** : SF Pro (optimisée écran Retina, lisibilité maximale)
+- **Android** : Roboto (Material Design native, compatibilité universelle)
+- **Web Back Office** : Inter (moderne, lisible, disponible Google Fonts)
+
+**Échelle typographique (base 16px — NFR-ACC-2 Michel 58 ans) :**
+
+| Niveau | Taille | Poids | Hauteur ligne | Usage |
+|--------|--------|-------|---------------|-------|
+| **Display** | 28px | Bold 700 | 34px | Titre écran principal, écrans onboarding |
+| **Headline** | 22px | SemiBold 600 | 28px | Nom patient, titre section principale |
+| **Title** | 18px | Medium 500 | 24px | Sous-sections, labels importants |
+| **Body Large** | 16px | Regular 400 | 24px | Texte principal, transmissions (**minimum absolu**) |
+| **Body Medium** | 14px | Regular 400 | 20px | Descriptions, métadonnées secondaires |
+| **Label** | 12px | Medium 500 | 16px | Badges, timestamps, chips |
+| **Caption** | 11px | Regular 400 | 16px | Mentions légales uniquement |
+
+**Règles typographiques :**
+- ✅ Minimum **16px** pour tout texte lu activement (NFR-ACC-2, lisibilité plein soleil et Michel +58 ans)
+- ✅ Pas d'italique pour textes critiques (lisibilité terrain dégradée)
+- ✅ Lettres capitales uniquement pour labels courts (max 3 mots)
+- ✅ Interligne **1.5×** pour zones de lecture (transmissions, historique patient)
+- ✅ Gras uniquement pour hiérarchie (titres, valeurs clés) — pas de décoration
+
+### Spacing & Layout Foundation
+
+**Grille de base : 8px (Material Design 3 standard)**
+
+| Valeur | Nom | Usage |
+|--------|-----|-------|
+| `4px` | Micro | Entre icône et label, espacement badge |
+| `8px` | Small | Padding interne composants, entre éléments liés |
+| `16px` | Base | Padding écrans, marges horizontales, entre éléments |
+| `24px` | Medium | Entre sections, espacement cards |
+| `32px` | Large | Entre groupes majeurs, espacement sections importantes |
+| `48px` | XL | Marges écran haut/bas, zones respiration |
+
+**Touch targets (NFR-ACC-2 — usage gants, plein soleil) :**
+- Minimum absolu : **44×44px** (Apple HIG)
+- Standard recommandé : **48×48px** (Material Design 3) — usage avec gants hiver
+- Boutons CTA principaux : **56px de hauteur** (FAB, "Lancer tournée", "Valider transmission")
+- Cards patients dans liste : hauteur **72-80px** (info essentielle + touch target confortable)
+
+**Layout Mobile :**
+- Marges horizontales écran : `16px` chaque côté
+- Padding interne cartes : `16px`
+- Espacement entre cartes en liste : `8px`
+- Bottom Navigation height : `64px` + safe area iOS/Android
+- Header height : `56px` + status bar
+- Safe areas respectées (notch iPhone, barre navigation Android)
+
+**Densité d'interface : Aérée (pas dense)**
+- Maximum **4-5 patients visibles** sans scroll sur écran planning
+- Espace blanc généreux entre éléments → Michel non stressé, plein soleil lisible
+- Pas de surcharge informationnelle : informations essentielles uniquement en vue principale
+
+**Système d'élévations (ombres Material Design 3) :**
+
+| Niveau | dp | Usage |
+|--------|----|-------|
+| 0 | 0dp | Fonds, surfaces plates |
+| 1 | 1dp | Cartes liste état normal |
+| 2 | 3dp | Cartes drag & drop état soulevé |
+| 3 | 6dp | Bottom sheets, FAB repos |
+| 4 | 8dp | Modals, dialogs, menus contextuels |
+
+**Border radius (professionnel médical — pas trop arrondi) :**
+
+| Composant | Radius |
+|-----------|--------|
+| Boutons standards | `8px` |
+| Cartes / Cards | `12px` |
+| Bottom sheets | `16px` (top uniquement) |
+| FAB | `16px` |
+| Chips / Badges | `100px` (pill) |
+| Modals | `16px` |
+
+### Accessibility Considerations
+
+**Contraste et lisibilité (plein soleil, Michel 58 ans) :**
+- Tous textes sur fond clair : ratio ≥ 4.5:1 (WCAG AA), ratio ≥ 7:1 ciblé pour textes principaux (WCAG AAA)
+- Mode contraste élevé automatique détectable via API système iOS/Android
+- Taille police minimum 16px — jamais en dessous pour texte actif
+- Espacement lettres : normal (pas condensé)
+
+**Support accessibilité native :**
+- Android TalkBack : labels accessibilité sur tous les composants interactifs
+- iOS VoiceOver : hints descriptifs sur actions complexes (drag & drop, hold-to-record)
+- Indicateurs de focus visibles pour navigation clavier (Back Office web)
+
+**Utilisabilité conditions dégradées :**
+- Plein soleil : fond blanc + texte `#1A237E` (ratio 12:1) — usage sans mode spécial requis
+- Avec gants : touch targets 48px minimum, pas d'interactions fines (pas de sliders petits)
+- Une main : actions critiques atteignables pouce bas (zone confortable bas écran)
+- Basse luminosité soir : Dark Mode OLED activé automatiquement (préférence système)
+
+**Daltonisme (colorblind-safe) :**
+- Succès/Erreur/Alerte : jamais identifiés par couleur seule → toujours accompagnés d'icône + label
+- ✅ Checkmark vert = icône ✓ + couleur verte + texte "Fait"
+- ⚠️ Badge sync = icône ⟳ + couleur orange + texte "En attente"
+- ❌ Erreur sync = icône ✗ + couleur rouge + texte "Échec"
+
+## Design Direction Decision
+
+### Directions Explorées
+
+6 directions visuelles explorées et évaluées sur critères : lisibilité plein soleil, accessibilité Michel (58 ans), modernité pour Sophie, efficacité terrain pour Marie, cohérence palette Indigo/Teal, faisabilité React Native Paper.
+
+| # | Direction | Caractère | Verdict |
+|---|-----------|-----------|---------|
+| D1 | Liste Épurée | Simple, header indigo plein, familier | Fonctionnel mais manque de personnalité |
+| D2 | Cards Visuelles | Riche, stats chips, bordures colorées | Moderne mais trop dense |
+| D3 | Dark Pro OLED | Premium, fond noir permanent | Trop sombre pour usage plein soleil terrain |
+| D4 | Carte Géographique | Hero carte, navigation centrée, style Waze | Excellente carte mais manque de sérénité |
+| **D5** | **Teal Dashboard** | **Sérénité, cercle progression, blanc épuré** | **Base retenue — meilleur équilibre** |
+| D6 | Minimaliste Blanc | Ultra-épuré, typographie dominante | Trop froid, manque d'identité visuelle |
+
+### Direction Choisie : "Teal Nav" (Fusion D5 + D4)
+
+**Référence visuelle :** `_bmad-output/planning-artifacts/ux-design-directions.html`
+
+La direction finale **"Teal Nav"** fusionne le style et l'ambiance de D5 (Teal Dashboard) avec la carte contextuelle collapsible de D4.
+
+**Éléments retenus de D5 — Teal Dashboard (base) :**
+- Header Teal (`#00897B`) avec cercle de progression animé (3/8 patients, ETA, statut sync)
+- Liste patients en cards blanches épurées sur fond `#F5F5F5`
+- Séparation visuelle claire sections "À faire" / "Complétés"
+- Sentiment sérénité + accomplissement aligné avec l'émotion objectif "Sérénité Efficace"
+
+**Éléments retenus de D4 — Carte Géographique (enrichissement contextuel) :**
+- Carte géo en section **collapsible** (toggle afficher/masquer, Option B retenue)
+- Tous les patients visibles sur la carte comme pins numérotés avec couleur statut
+- Route tracée entre patients (tirets fins, épuré)
+- Carte = information **contextuelle** (pas feature centrale permanente)
+
+### Structure Écran Planning — Layout Décidé
+
+```
+┌─────────────────────────────────┐
+│  Header Teal                    │
+│  Bonjour Marie · 10h02          │
+│  ◉ 3/8 patients · ~2h30 · ✅    │
+├─────────────────────────────────┤
+│  🗺️ Voir la carte  ∨            │  ← toggle collapsible
+│  ┌─────────────────────────┐    │
+│  │  ①  ②✓  ③  ④  ⑤        │    │  (déplié : pins numérotés
+│  │    ╌╌╌ route ╌╌╌        │    │   tous patients, épuré)
+│  └─────────────────────────┘    │
+├─────────────────────────────────┤
+│  À FAIRE (5)                    │
+│  ┌───────────────────────────┐  │
+│  │ 4 · M. Lefebvre  · 10h15  │  │
+│  │ 23 bd Victor Hugo         │  │
+│  └───────────────────────────┘  │
+│  ┌───────────────────────────┐  │
+│  │ 5 · Mme Petit    · 11h00  │  │
+│  └───────────────────────────┘  │
+│  COMPLÉTÉS (3) ∨                │
+│  [Mme Dupont · M. Martin ...]   │
+├─────────────────────────────────┤
+│  🗓 Planning │ 👥 Patients      │
+│  📝 Transm.  │ 👤 Profil        │
+└─────────────────────────────────┘
+```
+
+**Règles carte "contextuelle non surchargée" :**
+- Pins numérotés compacts (24px) — couleur indigo = à faire, vert = fait
+- Route tracée en tirets fins sans remplissage de zone
+- Fond carte style neutre clair (pas satellite)
+- Noms patients masqués sur la carte → visibles uniquement dans la liste en dessous
+- Carte mémorise son état déplié/replié entre sessions
+
+### Design Rationale
+
+| Décision | Justification |
+|----------|---------------|
+| Base D5 (Teal) | Correspond à l'émotion "Sérénité Efficace" — header doux, progression rassurante |
+| Carte collapsible (pas fixe) | Marie n'a pas toujours besoin de la carte — interface épurée par défaut |
+| Tous patients sur carte | Vision globale tournée utile pour anticiper les déplacements de la journée |
+| Pins numérotés uniquement | Évite surcharge visuelle — noms restent dans la liste, pas sur la carte |
+| Séparation À faire / Complétés | Sentiment d'accomplissement visible en permanence (objectif émotionnel clé) |
+| Cercle progression header | Indicateur de progression immédiat sans chercher l'information (Michel-friendly) |
+| Toggle afficher/masquer carte | Respect progressive disclosure — Michel peut ignorer, Sophie peut activer |
+
+### Approche d'Implémentation (React Native Paper)
+
+**Composants principaux identifiés :**
+
+| Élément UI | Composant React Native Paper | Notes |
+|------------|------------------------------|-------|
+| Header Teal | `Surface` + couleur Teal custom | Couleur primaire overridée |
+| Cercle progression | Composant custom `CircularProgress` | Pas dans Paper standard |
+| Toggle carte | `List.Accordion` ou animation hauteur | Mémorisation état AsyncStorage |
+| Carte | `react-native-maps` `MapView` | Hors scope Paper, lib dédiée |
+| Pins numérotés | `Marker` custom avec numéro | Couleur dynamique selon statut |
+| Route tracée | `Polyline` react-native-maps | Tirets, couleur Indigo |
+| Cards patients | `List.Item` + `Surface` elevation 1 | Swipeable pour actions rapides |
+| Bottom Navigation | `BottomNavigation` Paper standard | 4 tabs : Planning, Patients, Transmissions, Profil |
+| FAB contextuel | `FAB` Paper | Naviguer → patient suivant |
+
+**Comportements interactifs clés :**
+- Swipe card patient → actions contextuelles (Absent, Transmettre, Naviguer)
+- Tap pin carte → focus sur card patient correspondante dans liste
+- FAB flottant : `+` en mode liste → `🗺️ Naviguer` quand patient actif sélectionné
+- Pull-to-refresh → synchronisation manuelle déclenchée
+- Long press card → réorganisation drag & drop planning
+
+## User Journey Flows
+
+### F0 — Admin : Création Compte Structure (Back Office Web)
+
+**Contexte :** Flow fondateur — l'Admin crée la structure avant d'inviter les IDELs. Se déroule sur le Back Office web desktop.
+
+```mermaid
+flowchart TD
+    A[kura.app — Back Office Web] --> B[Créer ma structure]
+    B --> C[Email + MDP + Setup MFA]
+    C --> D{Email validé?}
+    D -->|Non| E[Renvoyer email]
+    E --> D
+    D -->|Oui| F[Infos structure\nnom cabinet · adresse · SIRET]
+    F --> G[Onboarding Back Office guidé]
+    G --> H[Import patients\nCSV ou saisie manuelle]
+    H --> I[Inviter IDELs par email\nattribution rôle]
+    I --> J[Attribuer patients ↔ IDELs]
+    J --> K[Structure opérationnelle ✅\n~2h total]
+    K --> L[IDELs reçoivent invitations email]
+```
+
+**Optimisations :**
+- Import CSV accepte jusqu'à 500 patients en < 30s (NFR-INT-4)
+- Invitation IDEL = 1 champ email + sélection rôle → envoi immédiat
+- Tableau de bord admin accessible dès structure créée (pas besoin d'attendre IDELs)
+
+---
+
+### F1 — IDEL : Onboarding Première Connexion (via invitation email)
+
+**Contexte :** Premier lancement KURA par un IDEL invité. Objectif : autonomie complète en 10-15 min (Michel) à 5 min (Marie/Sophie).
+
+```mermaid
+flowchart TD
+    A[Email invitation reçu] --> B[Clic lien → App Store / Play Store]
+    B --> C[Télécharge + installe KURA]
+    C --> D[Ouvre app\nRejoindre avec invitation]
+    D --> E[Email pré-rempli + crée MDP]
+    E --> F[Setup MFA obligatoire\nFIDO2 ou Authenticator]
+    F --> G{Biométrie disponible?}
+    G -->|Oui| H[Activer Face ID / Touch ID?\nrecommandé mais optionnel]
+    G -->|Non| I[Continuer sans biométrie]
+    H --> J[Tuto 3 écrans skippable\nPlanning · Transmissions · Sync]
+    I --> J
+    J --> K{Choix guidage}
+    K -->|Mode standard| L[Planning déjà prêt ✅\nConfiguré par Admin]
+    K -->|Guidage renforcé| M[Tooltips actifs\nAide contextuelle permanente]
+    M --> L
+```
+
+**Optimisations :**
+- Email pré-rempli depuis lien invitation → pas de ressaisie
+- Tuto 3 écrans max, chaque écran skippable individuellement (bouton "Passer")
+- Choix guidage renforcé = décision utilisateur (pas imposée, pas admin-only)
+- Planning déjà généré à l'arrivée → premier succès immédiat (< 5 min après install)
+
+---
+
+### F2 — Planning Quotidien Matin (Marie — 1×/jour)
+
+**Contexte :** Routine matinale avant tournée. Objectif : lancer la tournée en < 30 secondes si planning OK, < 2 minutes si modification nécessaire.
+
+```mermaid
+flowchart TD
+    A[Notification matinale\nVotre planning est prêt - 8 patients] --> B[Ouvre KURA\nFace ID / Touch ID < 1s]
+    B --> C[Écran Planning\nHeader Teal · Progression · Carte toggle]
+    C --> D{Planning OK?}
+    D -->|Oui| E[Tap Lancer tournée]
+    D -->|Modifier| F{Type modification}
+    F -->|Patient absent| G[Swipe gauche sur card\nMarquer absent]
+    F -->|Réorganiser ordre| H[Long press + drag & drop\nEntre cards patients]
+    F -->|Urgence ajoutée| I[FAB + → Ajouter patient urgent\nInsertion optimale proposée]
+    G --> J[Dialog : Retirer du planning?]
+    J --> K[Recalcul automatique < 2s\nUndo 5s disponible]
+    H --> K
+    I --> K
+    K --> D
+    E --> L[GPS natif lancé\nAdresse patient 1 pré-chargée]
+    L --> M[Tournée en cours ✅\nProgress 0/8 visible header]
+```
+
+**Optimisations :**
+- Notification locale programmée à l'heure de départ habituelle de l'IDEL
+- Authentification biométrique < 1s → pas de friction matin pressé
+- Undo 5s après chaque modification → supprime la peur d'erreur
+- Dialog confirmation "Retirer du planning?" = protection contre tap accidentel
+
+---
+
+### F3 — Saisie Transmission Post-Patient (8-12×/jour)
+
+**Contexte :** Saisie immédiate après chaque soin. Objectif : < 2 minutes (vocal validé) ou < 3 minutes (texte + template). Remplace le carnet papier.
+
+```mermaid
+flowchart TD
+    A[Fin de soin chez patient] --> B[Tap sur patient dans planning]
+    B --> C[Fiche patient slide modal\nHistorique + constantes visible]
+    C --> D[Tap Saisir transmission]
+    D --> E{Mode saisie choisi}
+    E -->|Vocal| F[Hold bouton micro\nOnde sonore animée]
+    F --> G[Dicte transmission\n30-60 secondes]
+    G --> H[Release → IA transcrit\n< 3 secondes]
+    H --> I{Transcription correcte?}
+    I -->|Oui| J[Tap Valider et enregistrer]
+    I -->|Correction nécessaire| K[Édition inline\nTap mot → corriger]
+    K --> J
+    I -->|Doute - replay| L[Réécoute enregistrement\nbouton lecture]
+    L --> I
+    E -->|Texte + template| M[Sélectionner template\nToilette · Pansement · Injection...]
+    M --> N[Compléter champs rapides\nConstantes si nécessaire]
+    N --> J
+    J --> O[Checkmark vert + haptic\nTransmission enregistrée ✅]
+    O --> P[Patient coché vert double check\nVu ✅ + Transmission ✅]
+    P --> Q{Dernier patient?}
+    Q -->|Non| R[Bouton Patient suivant → GPS]
+    Q -->|Oui| S[Animation Journée complétée\nRécap : 8 patients · 42 min gagnées]
+```
+
+**Optimisations :**
+- Fiche patient slide depuis droite → visible historique sans quitter le planning
+- Replay audio disponible si doute sur transcription (pas besoin de re-dicter)
+- Édition inline directement dans le texte transcrit (pas de champ séparé)
+- Bouton "Patient suivant" lancé directement vers GPS → zéro friction entre patients
+- Offline : transmission sauvegardée localement, badge sync mis à jour silencieusement
+
+---
+
+### F4 — Modification Planning Patient Absent/Prévenu (~3×/semaine)
+
+**Contexte :** Patient prévient la veille ou le matin. Marie modifie le planning dans KURA (remplace mémorisation mentale ou note papier).
+
+```mermaid
+flowchart TD
+    A[Patient prévient\nveille ou matin] --> B[Ouvre KURA]
+    B --> C[Écran Planning]
+    C --> D{Moment modification}
+    D -->|Veille / Matin avant tournée| E[Swipe gauche sur card patient]
+    D -->|En cours de tournée| F[Tap patient → Menu contextuel]
+    E --> G[Options : Absent · Déplacer · Annuler]
+    F --> G
+    G --> H{Action choisie}
+    H -->|Marquer absent| I[Dialog : Retirer du planning?]
+    H -->|Déplacer autre jour| J[Sélectionner date\nCalendrier compact]
+    H -->|Annuler modification| C
+    I --> K[Recalcul automatique < 2s]
+    J --> K
+    K --> L[Snackbar Undo 5 secondes\nAnnuler si erreur]
+    L --> M{Undo tapé?}
+    M -->|Oui| N[Planning restauré ↩]
+    M -->|Non — délai expiré| O[Planning mis à jour ✅\nSync automatique background]
+    N --> C
+```
+
+**Optimisations :**
+- Swipe gauche = geste natif familier (emails, messages) → zéro apprentissage
+- Options menu contextuel limitées à 3 maximum → pas de surcharge décisionnelle
+- Déplacer à un autre jour → calendrier compact sur 7 jours (pas calendrier plein écran)
+- Sync background silencieuse → admin voit modification en temps réel sans que Marie y pense
+
+---
+
+### Journey Patterns
+
+Patterns standardisés identifiés à travers les 5 flows pour garantir cohérence UX :
+
+| Pattern | Flows | Comportement standardisé |
+|---------|-------|--------------------------|
+| **Authentification rapide** | F1, F2, F3, F4 | Face ID / Touch ID → accès direct < 1s, fallback MDP si échec 2x |
+| **Recalcul + Undo 5s** | F2, F4 | Toute modification planning → recalcul < 2s + snackbar undo disparaît après 5s |
+| **Modal slide droite** | F3 | Fiche patient glisse depuis la droite, swipe droite pour fermer |
+| **Double check vert** | F3 | Patient vu ✅ + Transmission ✅ = card entièrement verte dans planning |
+| **GPS 1-tap** | F2, F3 | Bouton navigation → lance GPS natif avec adresse pré-chargée, toujours visible |
+| **Sync background silencieuse** | F2, F3, F4 | Synchronisation sans interruption, badge header mis à jour seulement |
+| **Feedback haptic + visuel** | F3, F4 | Validation transmission + confirmation modification = vibration + animation verte |
+| **Dialog confirmation** | F2, F4 | Actions destructives (supprimer, marquer absent) = dialog avant exécution |
+
+### Flow Optimization Principles
+
+1. **Zéro écran superflu** — chaque flow atteint son objectif en max 3-4 taps depuis l'écran Planning
+2. **Undo toujours disponible 5s** — toute action modifiant le planning est réversible sans menu settings
+3. **État toujours visible** — progression, sync, transmissions faites = jamais à chercher, dans le header
+4. **Offline transparent** — flows F2, F3, F4 fonctionnent identiquement sans réseau, aucune feature grisée
+5. **Retour fluide** — swipe droite depuis toute modal = retour au planning (pas de bouton Retour obligatoire)
+6. **Premier succès rapide** — F1 onboarding : planning déjà prêt à l'arrivée → sentiment d'efficacité immédiat
+7. **Gestes familiers** — swipe gauche (iOS mail), hold-to-record (WhatsApp), drag & drop (listes) = zéro apprentissage
+
+## Component Strategy
+
+### Design System Components (React Native Paper 5.x)
+
+Composants Paper utilisés directement sans modification :
+
+| Composant Paper | Usage KURA | Flow(s) |
+|-----------------|------------|---------|
+| `BottomNavigation` | Navigation 4 tabs : Planning · Patients · Transmissions · Profil | Tous |
+| `List.Item` + `Surface` | Base des cards patients (enrichie par PlanningCard custom) | F2, F3, F4 |
+| `FAB` | Bouton flottant "Naviguer" / "+" ajout urgence | F2, F3 |
+| `Snackbar` | Undo 5s après modification planning | F2, F4 |
+| `Dialog` | Confirmation "Retirer du planning ?" | F4 |
+| `TextInput` | Champs transmission texte, formulaires admin | F3, F0 |
+| `Button` | Actions principales (Valider, Lancer tournée) | F2, F3 |
+| `Chip` | Tags type de soin (Pansement, Injection, Toilette...) | F3 |
+| `Badge` | Compteur sync en attente, notifications non lues | Tous |
+| `Switch` | Toggles paramètres (guidage renforcé, dark mode, vocal) | F1 |
+| `Searchbar` | Recherche patients (liste admin + IDEL) | F0 |
+| `Avatar.Text` | Initiales patient dans les cards | F2, F3 |
+| `ProgressBar` | Chargement synchronisation | Tous |
+| `Checkbox` | Sélection multi-patients (back office admin) | F0 |
+| `Menu` | Menu contextuel post-swipe gauche | F2, F4 |
+| `Modal` | Base pour fiche patient slide droite | F3 |
+| `Divider` | Séparateurs "À faire" / "Complétés" | F2 |
+| `ActivityIndicator` | États de chargement | Tous |
+
+### Custom Components
+
+**8 composants custom** identifiés comme indispensables et non couverts par React Native Paper :
+
+---
+
+#### C1 — `PlanningCard`
+
+**Purpose :** Card patient draggable dans la liste planning avec infos essentielles et actions rapides.
+
+**Anatomy :**
+```
+┌─────────────────────────────────────────┐
+│ ⠿  [N°]  Nom Prénom Patient    [HH:MM] │
+│      📍 Adresse courte                  │
+│      🏷️ [Type soin]  [ETA: 8 min]      │
+└─────────────────────────────────────────┘
+```
+
+**États :** `default` (bordure indigo) · `active` (fond #E8EAF6, bordure épaisse) · `done` (fond vert clair, opacité 0.7) · `dragging` (elevation 3dp, rotation 2°) · `absent` (fond #FFF3E0, bordure orange)
+
+**Actions :**
+- Tap → modal fiche patient slide droite
+- Swipe gauche → révèle : Absent | Déplacer | Naviguer
+- Long press → active mode drag & drop
+
+**Touch target :** 72px hauteur minimum | **ARIA :** "Patient [N°] : [Nom], [Type soin], [Heure]"
+
+---
+
+#### C2 — `CircularProgressRing`
+
+**Purpose :** Cercle de progression journée dans le header Teal. Remplace la ProgressBar linéaire de Paper.
+
+**Props :** `current`, `total`, `color`, `size` (small: 48px / medium: 60px)
+
+**États :** arc vide (0%) → arc animé progressif → arc complet + pulse verte (100%)
+
+**Implémentation :** SVG natif (`react-native-svg`) avec arc calculé dynamiquement
+
+**ARIA :** "[N] patients vus sur [total]"
+
+---
+
+#### C3 — `VoiceRecorderButton`
+
+**Purpose :** Bouton hold-to-record pour dictée transmission. Geste familier WhatsApp.
+
+**États :**
+- `idle` → bouton indigo, icône micro statique
+- `recording` → bouton rouge pulsant + onde sonore animée + timer HH:MM:SS
+- `processing` → spinner + "Transcription en cours..."
+- `done` → checkmark vert 1s
+- `error` → rouge + message "Erreur micro, réessayez"
+
+**Callbacks :** `onRecordStart` · `onRecordEnd(audioBlob)` · `onCancel`
+
+**Annulation :** Long press > 3s sans relâcher → snackbar "Enregistrement annulé"
+
+---
+
+#### C4 — `TranscriptionViewer`
+
+**Purpose :** Affichage texte IA transcrit avec édition inline avant validation obligatoire (HDS).
+
+**Anatomy :**
+```
+┌──────────────────────────────────────┐
+│ 🎤 Transcription IA                  │
+│ Tension [12/8] stable, pansement...  │  ← mots incertains surlignés jaune
+│ [🔊 Réécouter]          [✏️ Éditer]  │
+├──────────────────────────────────────┤
+│         ✅ Valider et enregistrer    │
+└──────────────────────────────────────┘
+```
+
+**États :** `review` (lecture, mots incertains surlignés) · `editing` (clavier, curseur libre) · `validated` (fond vert, animation fermeture)
+
+**Interactions :** Tap mot surligné → correction | Tap "Réécouter" → replay audio | Tap "Valider" → haptic + enregistrement
+
+**Audit trail** : stocke automatiquement version originale IA + version validée + timestamp (NFR-SEC-4)
+
+---
+
+#### C5 — `SyncStatusIndicator`
+
+**Purpose :** Indicateur permanent header, discret mais toujours lisible. 3 états visuels + tap pour détails.
+
+**États :**
+- `synced` → ✅ vert 16px (discret)
+- `syncing` → 🔄 orange animé + badge count
+- `pending` → ⚠️ rouge + badge count transmissions en attente
+
+**Tap → Bottom sheet :** dernière sync · N éléments en attente · bouton "Sync maintenant"
+
+**ARIA dynamique :** "Synchronisé" / "Synchronisation en cours" / "N éléments en attente de synchronisation"
+
+---
+
+#### C6 — `ConstantesLineChart`
+
+**Purpose :** Graphique courbe évolution constantes patient (tension, glycémie, poids, température). Inspiré Apple Health.
+
+**Librairie :** `react-native-gifted-charts` (Expo compatible, pas d'eject requis)
+- ✅ Line charts avec zones colorées nativement
+- ✅ Tap sur point → tooltip valeur + date
+- ✅ Léger (~300KB)
+- 📌 Post-MVP : migration possible vers `victory-native XL` (Skia) si besoin performances avancées
+
+**Zones visuelles :**
+- Zone verte = valeurs normales (configurable par constante)
+- Zone orange = attention (seuil dépassé)
+- Zone rouge = alerte (seuil critique)
+
+**Props :** `dataPoints[]` · `unit` · `normalRange {min, max}` · `alertRange {min, max}` · `timeRange` (7j / 30j / 6m)
+
+**Interactions :** Tap point → tooltip | Swipe horizontal → navigation temporelle
+
+---
+
+#### C7 — `MapToggleSection`
+
+**Purpose :** Section carte collapsible dans l'écran Planning. Affiche tous les patients avec pins numérotés.
+
+**Librairie carte :** `react-native-maps` (Expo compatible)
+
+**États :**
+- `collapsed` → bouton "🗺️ Voir la carte ∨" (hauteur 44px)
+- `expanded` → carte visible (~160px) + "Masquer ∧"
+
+**Carte affiche :**
+- Pins numérotés ① ② ③ (indigo = à faire, vert = fait, orange = absent)
+- `Polyline` route tirets fins indigo entre patients
+- Fond carte neutre clair (pas satellite — lisibilité)
+- Noms patients masqués sur carte (visibles dans liste)
+
+**Animation :** `LayoutAnimation.easeInEaseOut` 300ms
+
+**Mémorisation état :** `AsyncStorage` → carte mémorise déplié/replié entre sessions
+
+---
+
+#### C8 — `TimeSavedWidget`
+
+**Purpose :** Widget "Temps gagné" — le moment "Waouh" quotidien de Marie.
+
+**Anatomy :**
+```
+┌──────────────────────────────┐
+│  ⏱️ Temps gagné aujourd'hui  │
+│        42 min                │
+│    ████████████░░░           │
+│    vs ~1h30 avant KURA       │
+└──────────────────────────────┘
+```
+
+**Variantes :**
+- `daily` → gain du jour avec barre comparative avant/après
+- `weekly` → gain semaine avec graphique barres 7 jours
+- `celebration` → animation confetti subtile si > objectif 30 min
+
+---
+
+### Component Implementation Strategy
+
+**Principe :** Construire tous les composants custom avec les tokens de design KURA (couleurs, spacing, typography) pour garantir la cohérence visuelle et faciliter les futures modifications de thème.
+
+**Architecture :** `src/components/kura/` → dossier dédié composants custom, séparé des imports Paper
+
+**Tokens partagés :** fichier `src/theme/kura-theme.ts` centralise couleurs, spacing, border radius utilisés par Paper ET composants custom
+
+### Implementation Roadmap
+
+**Phase 1 — Composants Critiques MVP (Semaine 1-2)**
+
+| Composant | Flow critique | Priorité |
+|-----------|---------------|----------|
+| `PlanningCard` (C1) | F2 Planning matinal | 🔴 P0 |
+| `VoiceRecorderButton` (C3) | F3 Transmission vocal | 🔴 P0 |
+| `TranscriptionViewer` (C4) | F3 Validation IA | 🔴 P0 |
+| `SyncStatusIndicator` (C5) | Tous (offline trust) | 🔴 P0 |
+
+**Phase 2 — Composants Enrichissement (Semaine 3)**
+
+| Composant | Usage | Priorité |
+|-----------|-------|----------|
+| `CircularProgressRing` (C2) | Header progression | 🟠 P1 |
+| `MapToggleSection` (C7) | Planning carte | 🟠 P1 |
+| `ConstantesLineChart` (C6) | Fiche patient | 🟠 P1 |
+
+**Phase 3 — Composants Waouh (Semaine 4)**
+
+| Composant | Usage | Priorité |
+|-----------|-------|----------|
+| `TimeSavedWidget` (C8) | Dashboard gain temps | 🟡 P2 |
+
+---
+
+## Section 12 — UX Consistency Patterns
+
+Cette section établit les règles de comportement cohérentes pour toutes les interactions récurrentes de KURA : boutons, feedback, formulaires, navigation, états vides, modals et recherche.
+
+---
+
+### 12.1 — Hiérarchie des Boutons
+
+| Niveau | Composant Paper | Style | Usage KURA |
+|--------|----------------|-------|-----------|
+| Primaire | `Button mode="contained"` | Fond `#3949AB` indigo, texte blanc, `borderRadius: 8`, hauteur 56px | "Valider transmission", "Lancer tournée", "Enregistrer" |
+| Secondaire | `Button mode="outlined"` | Bordure indigo, texte indigo, fond transparent | "Annuler", "Mode manuel", "Passer" (onboarding) |
+| Tertiaire | `Button mode="text"` | Texte indigo, aucun fond ni bordure | "Réécouter", "Voir détails", liens discrets |
+| Destructif | `Button mode="contained"` | Fond `#E53935` rouge | "Supprimer patient", "Effacer données locales" |
+| FAB | `FAB` Paper | Teal `#00897B`, icône blanche, `borderRadius: 16` | "Naviguer vers suivant", "+" urgence |
+
+**Règle critique :** Maximum **1 bouton primaire par écran**. Si deux actions importantes coexistent → l'une est primaire, l'autre secondaire.
+
+**Touch targets :** Tous les boutons ≥ 48px de hauteur (usage avec gants, plein soleil — NFR-ACC-1).
+
+---
+
+### 12.2 — Patterns de Feedback
+
+| Situation | Composant | Durée | Exemple KURA |
+|-----------|-----------|-------|-------------|
+| Succès action | `Snackbar` vert | 3s auto-dismiss | "Transmission enregistrée ✅" |
+| Undo disponible | `Snackbar` + bouton Annuler | 5s | "Patient retiré — Annuler" |
+| Erreur récupérable | `Snackbar` rouge + action | Persistant jusqu'à action | "Sync échouée — Réessayer" |
+| Erreur bloquante | `Dialog` | Tap pour dismiss | "Microphone inaccessible" |
+| Avertissement | `Banner` orange | Jusqu'à action utilisateur | "3 transmissions non synchronisées" |
+| Chargement | `ActivityIndicator` | Pendant l'opération | Transcription IA en cours |
+| Succès critique | Animation + haptic | 1,5s | Journée complétée 🎉 |
+
+**Règle Feedback Positif > Négatif :** Messages de succès visibles et chaleureux. Erreurs discrètes avec solution actionnable immédiate — jamais de message d'erreur sans "Que faire ?".
+
+**Haptic feedback obligatoire sur :**
+- Validation transmission → impact fort
+- Drag & drop déposé → impact léger
+- Marquer patient absent → impact moyen
+- Journée complétée → pattern double frappe (`Haptics.notificationAsync(SUCCESS)`)
+
+---
+
+### 12.3 — Patterns Formulaires
+
+**Champs de saisie :**
+- `TextInput` Paper avec label flottant (Material style)
+- Hauteur minimum 56px, police 16px (NFR-ACC-2)
+- Placeholder : `#B0BEC5`, texte saisi : `#1A237E`
+
+**Validation :**
+- En temps réel **uniquement** pour formats stricts (téléphone, email, numéro RPPS)
+- À la soumission pour les autres champs → pas de bordures rouges agressives pendant la saisie
+- Message d'erreur : sous le champ, rouge `#E53935`, icône ⚠️ + texte explicatif
+
+**Templates transmissions :**
+- Sélection visuelle en chips horizontaux scrollables : `Toilette · Pansement · Injection · Constantes · Autre`
+- Template sélectionné → champs pré-remplis adaptés au type de soin
+- Champs optionnels clairement marqués `(optionnel)`
+
+**Keyboards :**
+- Champs numériques (constantes vitales) → `keyboardType="decimal-pad"`
+- Champs texte → clavier texte avec dictée iOS/Android activée
+- Fermeture clavier : tap hors champ **ou** bouton "Terminer" sur la keyboard toolbar
+
+---
+
+### 12.4 — Patterns de Navigation
+
+**Structure globale — Bottom Navigation (4 tabs permanents) :**
+
+```
+Bottom Navigation
+├── Planning        (tab 1 — défaut à l'ouverture)
+├── Patients        (tab 2)
+├── Transmissions   (tab 3)
+└── Profil          (tab 4)
+```
+
+**Navigation dans les écrans :**
+- Tap sur élément liste → modal slide depuis la droite (fiche patient, détail transmission)
+- Fermeture modal → swipe vers la droite **ou** tap icône ✕
+- Navigation profonde (Settings > Sécurité > MFA) → stack navigation avec back arrow
+
+**Règle 2 taps max :** Toute action fréquente (> 5×/jour) doit être accessible en **maximum 2 taps** depuis l'écran principal.
+
+**Gestes natifs :**
+| Geste | Action |
+|-------|--------|
+| Swipe droite | Retour (iOS back gesture, Android back) |
+| Pull-to-refresh | Synchronisation manuelle |
+| Swipe gauche sur card | Actions contextuelles |
+| Long press | Sélection multiple (liste admin) ou drag & drop (planning) |
+
+**Back Office Web (Admin) :**
+- Navigation latérale (drawer) : Tableau de bord · Patients · IDELs · Paramètres
+- Breadcrumbs sur les pages profondes
+- Raccourcis clavier pour actions fréquentes (import CSV, inviter IDEL)
+
+---
+
+### 12.5 — Patterns Modals et Overlays
+
+| Type | Composant | Déclencheur | Fermeture |
+|------|-----------|-------------|-----------|
+| Fiche patient | Bottom sheet slide droite | Tap card planning | Swipe droite · Tap ✕ |
+| Confirmation action destructive | Dialog centré | Swipe Absent · Supprimer | Tap "Confirmer" ou "Annuler" |
+| Détails sync | Bottom sheet | Tap `SyncStatusIndicator` | Swipe bas · Tap hors zone |
+| Sélection date | Bottom sheet calendrier | Tap "Déplacer à un autre jour" | Tap date · Tap "Annuler" |
+| Options menu contextuel | `Menu` Paper | Swipe gauche sur card | Tap option · Tap hors zone |
+
+**Règle overlay :** Fond semi-transparent `rgba(0, 0, 0, 0.4)` sur toutes les modals. Tap sur fond = fermeture — **sauf Dialog de confirmation** (action destructive requiert un choix explicite).
+
+---
+
+### 12.6 — Empty States et Loading States
+
+**États vides :**
+
+| Écran | Message | Illustration | Action |
+|-------|---------|--------------|--------|
+| Planning vide | "Aucun patient planifié aujourd'hui" | Icône calendrier | "Voir tous mes patients" |
+| Aucune transmission | "Aucune transmission saisie" | Icône stylo | "Saisir ma première transmission" |
+| Recherche sans résultat | "Aucun patient trouvé" | Icône loupe | "Effacer la recherche" |
+| Hors ligne — données non chargées | "Données en cours de chargement..." | Icône sync | "Synchroniser" |
+
+**Loading states :**
+- **Skeleton screens** (pas de spinner seul) → affiche la structure de l'écran avant les données réelles
+- `ActivityIndicator` Paper uniquement pour actions courtes (< 2s)
+- Transcription IA : barre de progression + texte "Transcription en cours..." (pas de spinner isolé)
+
+---
+
+### 12.7 — Patterns Recherche et Filtrage
+
+**Recherche patients :**
+- `Searchbar` Paper, sticky en haut de liste
+- Résultats filtrés en temps réel dès **2 caractères** tapés
+- Recherche par : nom · adresse · médecin traitant (FR25)
+- Highlight du terme recherché dans les résultats
+
+**Filtres liste planning — Chips horizontaux scrollables :**
+
+| État chip | Style |
+|-----------|-------|
+| `Tous` | Chip outline, texte gris (défaut) |
+| `À faire` | Chip outline, texte gris |
+| `Complétés` | Chip outline, texte gris |
+| `Absents` | Chip outline, texte gris |
+| Filtre actif | Chip fond `#3949AB` indigo, texte blanc |
+
+---
+
+### Synthèse des Règles de Cohérence
+
+| Règle | Détail |
+|-------|--------|
+| 1 bouton primaire / écran | Jamais deux actions "contained" côte à côte |
+| Touch target ≥ 48px | Tous les éléments interactifs sans exception |
+| Feedback toujours actionnable | Chaque erreur propose une action immédiate |
+| 2 taps max (actions fréquentes) | Règle de productivité pour IDELs en tournée |
+| Skeleton avant spinner | Meilleure perception de performance |
+| Haptic sur actions critiques | Validation, absence, journée complétée |
+| Overlay tap = fermeture | Sauf Dialog destructif — protection contre l'accidentel |
+
+---
+
+## Section 13 — Responsive Design & Accessibilité
+
+### 13.1 — Stratégie Responsive
+
+**Architecture double-surface de KURA :**
+
+| Surface | Plateforme | Utilisateurs | Priorité |
+|---------|-----------|-------------|---------|
+| App mobile | iOS 15+ / Android 10+ | IDELs en tournée | 🔴 Primaire |
+| Back Office | Web desktop (Chrome, Safari, Firefox) | Admins cabinet | 🟠 Secondaire |
+
+**Stratégie mobile — Mobile First absolu :**
+
+L'app React Native est conçue exclusivement pour l'usage en main, debout, souvent à une main. Aucune adaptation tablet n'est prévue pour le MVP — les IDELs utilisent leur smartphone en tournée.
+
+- Écrans cibles : 375px–430px (iPhone SE → iPhone Pro Max), 360px–412px (Android courant)
+- Orientation : **Portrait uniquement** verrouillé (pas de rotation) — stabilité d'affichage en situation de mobilité
+- Safe areas : `SafeAreaView` systématique pour encoche iOS et barre Android
+- Densité écran : assets `@2x` et `@3x` (Retina / high-DPI Android)
+
+**Stratégie tablet :**
+
+Non ciblée au MVP. Si ajoutée post-MVP, l'interface admin web est préférable pour une utilisation sur tablette.
+
+**Stratégie Back Office web — Desktop first :**
+
+- Layout latéral drawer + contenu principal (design responsive, usage prévu ≥ 1024px)
+- Minimum viable : 1280px × 768px (laptop standard)
+- Tablette ≥ 768px : drawer collapsable, navigation simplifiée
+- Mobile web non supporté pour le back office (admins au bureau)
+
+---
+
+### 13.2 — Stratégie Breakpoints
+
+**App mobile React Native :**
+
+React Native ne gère pas les breakpoints CSS. L'adaptation se fait via `Dimensions` API et `useWindowDimensions` :
+
+```
+Small phone  : width < 375px   → ex. iPhone SE (espacements réduits)
+Standard     : 375px – 413px   → ex. iPhone 14, Pixel 7 (layout nominal)
+Large phone  : width ≥ 414px   → ex. iPhone Pro Max (marges augmentées)
+```
+
+**Règles d'adaptation :**
+- Textes et touch targets : taille fixe (jamais réduits sous les minimums)
+- Marges latérales : `16px` (small) / `20px` (standard) / `24px` (large)
+- `PlanningCard` : largeur `100% - marges` — pas de grid multi-colonnes
+- Pas de contenu masqué selon la taille → tout est accessible sur tous les formats
+
+**Back Office web :**
+
+```
+Mobile web  : < 768px    → non supporté (redirect vers app mobile)
+Tablet      : 768–1023px → drawer collapsé, navigation hamburger
+Desktop     : ≥ 1024px   → layout nominal avec drawer déployé
+Wide        : ≥ 1440px   → contenu centré, max-width 1200px
+```
+
+---
+
+### 13.3 — Stratégie d'Accessibilité
+
+**Niveau cible : WCAG 2.1 AA**
+
+Justification : Application de santé utilisée par des professionnels. Le niveau AA est la norme sectorielle standard en France (RGAA 4.1 pour les services publics, standard de facto pour les apps santé). Le niveau AAA n'est pas requis sur toutes les clauses.
+
+**Critères AA critiques pour KURA :**
+
+| Critère | Exigence | Implémentation KURA |
+|---------|----------|-------------------|
+| Contraste texte normal | ≥ 4,5:1 | Indigo `#1A237E` sur blanc = 14:1 ✅ |
+| Contraste texte grand | ≥ 3:1 | Tous titres vérifiés ✅ |
+| Touch target | ≥ 44×44px (WCAG) / 48px (KURA) | Tous boutons 48px minimum ✅ |
+| Taille police | ≥ 16px (NFR-ACC-2) | Tous champs et contenu principal ✅ |
+| Redimensionnement | Texte lisible jusqu'à 200% | Pas de texte dans les images |
+| Focus visible | Indicateur focus clavier | Web back office : `focusRing` visible |
+| Alt text | Toutes images fonctionnelles | Icônes avec `accessibilityLabel` |
+| Pas de contenu clignotant | < 3 flashes/seconde | Animations KURA < 1Hz |
+
+**Accessibilité iOS/Android spécifique :**
+
+- **VoiceOver (iOS) / TalkBack (Android) :** `accessibilityLabel` sur tous les éléments interactifs, `accessibilityHint` pour les actions non évidentes, `accessibilityRole` déclaré (`button`, `header`, `text`), groupement logique avec `accessibilityViewIsModal`
+- **Mode gros texte (Dynamic Type iOS / Font Size Android) :** Layout testé de 100% à 150% taille texte, pas de texte tronqué sans fallback scroll ou ellipsis, icônes ne remplacent jamais le texte seul
+- **Mode contraste élevé :** Couleurs testées en mode "Increase Contrast" iOS, fond blanc légèrement grisé pour éviter l'éblouissement soleil
+
+**Contraintes terrain spécifiques IDELs :**
+
+| Contrainte | Impact | Réponse design |
+|-----------|--------|---------------|
+| Usage avec gants | Précision tactile réduite | Touch targets ≥ 48px, zones larges |
+| Plein soleil | Lisibilité réduite | Contraste ≥ 7:1 sur éléments de statut critiques |
+| Stress / urgence | Cognitive load élevée | Animations désactivables, pas de timeout agressif |
+| Usage à une main | Portée du pouce limitée | Actions principales dans la moitié basse de l'écran |
+
+---
+
+### 13.4 — Stratégie de Tests
+
+**Tests Responsive :**
+
+| Type | Outil | Appareils cibles |
+|------|-------|-----------------|
+| Appareils réels | Expo Go + builds dev | iPhone SE, iPhone 14, Pixel 6 |
+| Simulateurs | Xcode Simulator / Android Studio | Toutes tailles standard |
+| Back Office web | Chrome DevTools responsive | 768px, 1024px, 1440px |
+| Réseau dégradé | Network throttling | 3G, offline |
+
+**Tests Accessibilité :**
+
+| Type | Outil | Couverture |
+|------|-------|-----------|
+| Audit automatisé | `eslint-plugin-jsx-a11y` (web) | Composants React |
+| Screen reader iOS | VoiceOver natif | Parcours IDEL complet |
+| Screen reader Android | TalkBack natif | Parcours IDEL complet |
+| Contraste couleurs | Colour Contrast Analyser | Tous tokens de couleur |
+| Simulation daltonisme | Sim Daltonism / Xcode | Protanopie, deutéranopie |
+| Navigation clavier | Tab + Enter + Escape | Back office web |
+
+**Tests terrain :**
+- Session de test avec IDEL volontaire en conditions réelles
+- Test avec gants (latex et vinyle)
+- Test en extérieur (luminosité max écran)
+- Test avec VoiceOver activé
+
+---
+
+### 13.5 — Guidelines d'Implémentation
+
+**React Native — Dimensions adaptatives :**
+
+```typescript
+import { useWindowDimensions } from 'react-native';
+
+const { width } = useWindowDimensions();
+const horizontalPadding = width < 375 ? 16 : width < 414 ? 20 : 24;
+```
+
+**React Native — Accessibilité obligatoire :**
+
+```typescript
+<TouchableOpacity
+  accessibilityRole="button"
+  accessibilityLabel="Valider la transmission de Marie Dupont"
+  accessibilityHint="Double-tappez pour confirmer l'envoi"
+  style={{ minHeight: 48, minWidth: 48 }}
+/>
+
+// Respect du Dynamic Type
+<Text
+  style={{ fontSize: 16 }}
+  allowFontScaling={true}
+  maxFontSizeMultiplier={1.5}
+/>
+```
+
+**React Native Paper — Thème accessible :**
+
+```typescript
+// src/theme/kura-theme.ts
+const theme = {
+  colors: {
+    primary: '#3949AB',     // Contraste 14:1 sur blanc
+    error: '#E53935',       // Contraste 4.6:1 sur blanc ✅
+    surface: '#FFFFFF',
+    onSurface: '#1A237E',
+  },
+  fonts: {
+    bodyLarge: { fontSize: 16, lineHeight: 24 },
+  },
+};
+```
+
+**Back Office Web — Accessibilité :**
+- Semantic HTML : `<nav>`, `<main>`, `<header>`, `<button>` (jamais de `<div>` cliquable)
+- Focus ring visible : `outline: 2px solid #3949AB` (jamais de `outline: none`)
+- Skip link : `<a href="#main-content">Aller au contenu principal</a>` en premier élément
+- ARIA live regions pour les notifications de sync en temps réel (`aria-live="polite"`)

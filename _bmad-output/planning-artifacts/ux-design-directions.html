@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KURA — Design Directions</title>
+  <style>
+    :root {
+      --indigo: #3949AB;
+      --indigo-light: #E8EAF6;
+      --indigo-dark: #1A237E;
+      --teal: #00897B;
+      --teal-light: #E0F2F1;
+      --success: #43A047;
+      --warning: #FB8C00;
+      --error: #E53935;
+      --surface: #FFFFFF;
+      --surface-var: #F5F5F5;
+      --text-primary: #1A237E;
+      --text-secondary: #546E7A;
+      --text-disabled: #B0BEC5;
+      --border: #E0E0E0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, 'Roboto', sans-serif; background: #ECEFF1; color: #263238; }
+
+    /* NAV */
+    .page-nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--indigo-dark); color: white;
+      padding: 12px 24px; display: flex; align-items: center; gap: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .page-nav h1 { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+    .page-nav span { font-size: 13px; opacity: 0.7; }
+    .nav-pills { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+    .nav-pill {
+      padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 2px solid rgba(255,255,255,0.3); color: white;
+      transition: all 0.2s; background: transparent;
+    }
+    .nav-pill:hover, .nav-pill.active { background: white; color: var(--indigo-dark); border-color: white; }
+
+    /* GRID */
+    .directions-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 32px; padding: 32px 24px; max-width: 1600px; margin: 0 auto;
+    }
+    .direction-card {
+      background: white; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .direction-card:hover { transform: translateY(-4px); box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+    .direction-label {
+      padding: 12px 16px; background: var(--indigo); color: white;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .direction-label h3 { font-size: 14px; font-weight: 700; }
+    .direction-label span { font-size: 11px; opacity: 0.8; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 100px; }
+    .direction-desc {
+      padding: 10px 16px; font-size: 12px; color: var(--text-secondary);
+      background: var(--indigo-light); border-bottom: 1px solid var(--border);
+    }
+    .mockup { padding: 0; }
+
+    /* ============================
+       PHONE FRAME
+    ============================ */
+    .phone-frame {
+      width: 320px; height: 620px; margin: 16px auto;
+      border-radius: 32px; overflow: hidden; position: relative;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .phone-screen { width: 100%; height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+
+    /* ============================
+       DIRECTION 1 — Liste Épurée
+    ============================ */
+    .d1 .phone-screen { background: #FFFFFF; }
+    .d1 .header {
+      background: var(--indigo); padding: 12px 16px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .d1 .header-left h2 { color: white; font-size: 16px; font-weight: 700; }
+    .d1 .header-left p { color: rgba(255,255,255,0.75); font-size: 11px; }
+    .d1 .sync-badge {
+      display: flex; align-items: center; gap: 4px;
+      background: rgba(255,255,255,0.15); border-radius: 100px;
+      padding: 4px 8px; font-size: 10px; color: white;
+    }
+    .d1 .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: #81C784; }
+    .d1 .progress-bar-container { padding: 8px 16px; background: var(--indigo-dark); }
+    .d1 .progress-label { display: flex; justify-content: space-between; color: rgba(255,255,255,0.8); font-size: 10px; margin-bottom: 4px; }
+    .d1 .progress-bar { height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; }
+    .d1 .progress-fill { height: 100%; width: 37.5%; background: #81C784; border-radius: 2px; }
+    .d1 .patient-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .d1 .patient-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; border-bottom: 1px solid #F5F5F5;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .d1 .patient-item:hover { background: var(--indigo-light); }
+    .d1 .patient-item.done { opacity: 0.6; }
+    .d1 .patient-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--indigo-light); color: var(--indigo);
+      font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .d1 .patient-item.done .patient-num { background: #E8F5E9; color: var(--success); }
+    .d1 .patient-info { flex: 1; }
+    .d1 .patient-name { font-size: 14px; font-weight: 600; color: #1A1A2E; }
+    .d1 .patient-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .d1 .patient-status { font-size: 11px; }
+    .d1 .status-done { color: var(--success); font-weight: 600; }
+    .d1 .status-pending { color: var(--text-disabled); }
+    .d1 .bottom-bar {
+      padding: 12px 16px; background: white;
+      border-top: 1px solid var(--border); display: flex; gap: 8px;
+    }
+    .d1 .btn-primary {
+      flex: 1; background: var(--indigo); color: white;
+      border: none; border-radius: 8px; padding: 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .d1 .btn-secondary {
+      background: var(--indigo-light); color: var(--indigo);
+      border: none; border-radius: 8px; padding: 12px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .d1 .bottom-nav {
+      display: flex; background: white; border-top: 1px solid var(--border);
+    }
+    .d1 .nav-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 8px 4px; font-size: 9px; color: var(--text-disabled); cursor: pointer;
+    }
+    .d1 .nav-item.active { color: var(--indigo); }
+    .d1 .nav-icon { font-size: 18px; margin-bottom: 2px; }
+
+    /* ============================
+       DIRECTION 2 — Cards Visuelles
+    ============================ */
+    .d2 .phone-screen { background: var(--surface-var); }
+    .d2 .header {
+      background: white; padding: 14px 16px 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .d2 .header-title { font-size: 20px; font-weight: 800; color: var(--indigo-dark); }
+    .d2 .header-date { font-size: 11px; color: var(--text-secondary); }
+    .d2 .header-sync {
+      display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--success);
+      background: #E8F5E9; padding: 4px 10px; border-radius: 100px;
+    }
+    .d2 .stats-row {
+      display: flex; gap: 8px; padding: 12px 16px;
+    }
+    .d2 .stat-chip {
+      flex: 1; background: white; border-radius: 12px; padding: 10px 8px; text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .d2 .stat-value { font-size: 20px; font-weight: 800; color: var(--indigo); }
+    .d2 .stat-label { font-size: 9px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .d2 .stat-chip.green .stat-value { color: var(--success); }
+    .d2 .stat-chip.orange .stat-value { color: var(--warning); }
+    .d2 .cards-list { flex: 1; overflow-y: auto; padding: 4px 16px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .d2 .patient-card {
+      background: white; border-radius: 12px; padding: 12px 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 12px;
+      cursor: pointer; border-left: 4px solid var(--indigo);
+    }
+    .d2 .patient-card.done { border-left-color: var(--success); opacity: 0.7; }
+    .d2 .patient-card.urgent { border-left-color: var(--error); }
+    .d2 .card-order {
+      width: 32px; height: 32px; border-radius: 50%; background: var(--indigo-light);
+      color: var(--indigo); font-weight: 800; font-size: 14px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .d2 .patient-card.done .card-order { background: #E8F5E9; color: var(--success); }
+    .d2 .card-info { flex: 1; }
+    .d2 .card-name { font-size: 14px; font-weight: 700; color: #1A1A2E; }
+    .d2 .card-address { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .d2 .card-tags { display: flex; gap: 4px; margin-top: 4px; }
+    .d2 .tag {
+      font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 100px;
+      background: var(--indigo-light); color: var(--indigo);
+    }
+    .d2 .tag.green { background: #E8F5E9; color: var(--success); }
+    .d2 .card-action { font-size: 18px; color: var(--text-disabled); }
+    .d2 .fab {
+      position: absolute; bottom: 70px; right: 16px;
+      width: 52px; height: 52px; border-radius: 16px;
+      background: var(--teal); color: white; font-size: 22px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,137,123,0.4); cursor: pointer;
+    }
+    .d2 .bottom-nav { display: flex; background: white; border-top: 1px solid var(--border); position: absolute; bottom: 0; width: 100%; }
+    .d2 .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 4px; font-size: 9px; color: var(--text-disabled); }
+    .d2 .nav-item.active { color: var(--indigo); }
+    .d2 .nav-icon { font-size: 18px; margin-bottom: 2px; }
+
+    /* ============================
+       DIRECTION 3 — Dark Pro
+    ============================ */
+    .d3 .phone-screen { background: #000000; color: #ECEFF1; }
+    .d3 .header { padding: 14px 16px 10px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .d3 .header-greeting { font-size: 12px; color: #90A4AE; }
+    .d3 .header-title { font-size: 22px; font-weight: 800; color: #ECEFF1; }
+    .d3 .header-sync {
+      background: #0D1B2A; border-radius: 100px; padding: 6px 10px;
+      font-size: 10px; color: #81C784; display: flex; align-items: center; gap: 4px;
+    }
+    .d3 .date-chip {
+      margin: 0 16px 12px; background: #1A1A2E; border-radius: 10px;
+      padding: 10px 14px; display: flex; justify-content: space-between;
+    }
+    .d3 .date-chip span { font-size: 11px; color: #90A4AE; }
+    .d3 .date-chip strong { font-size: 11px; color: #7986CB; }
+    .d3 .patient-list { flex: 1; overflow-y: auto; padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+    .d3 .patient-row {
+      background: #0D0D1A; border-radius: 12px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px; cursor: pointer;
+      border: 1px solid #1A1A2E;
+    }
+    .d3 .patient-row.done { opacity: 0.5; }
+    .d3 .row-num {
+      width: 30px; height: 30px; border-radius: 8px; background: #1A1A2E;
+      color: #7986CB; font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .d3 .patient-row.done .row-num { color: #81C784; }
+    .d3 .row-info { flex: 1; }
+    .d3 .row-name { font-size: 14px; font-weight: 600; color: #ECEFF1; }
+    .d3 .row-meta { font-size: 11px; color: #546E7A; margin-top: 2px; }
+    .d3 .row-badge {
+      font-size: 10px; padding: 3px 8px; border-radius: 100px;
+      background: #1A1A2E; color: #7986CB;
+    }
+    .d3 .row-badge.done-badge { color: #81C784; }
+    .d3 .bottom-action { padding: 12px 16px; display: flex; gap: 8px; }
+    .d3 .btn-dark-primary {
+      flex: 1; background: #7986CB; color: #000; border: none;
+      border-radius: 10px; padding: 13px; font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .d3 .btn-dark-secondary {
+      background: #1A1A2E; color: #7986CB; border: none;
+      border-radius: 10px; padding: 13px 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .d3 .bottom-nav { display: flex; background: #0D0D1A; border-top: 1px solid #1A1A2E; }
+    .d3 .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 4px; font-size: 9px; color: #546E7A; }
+    .d3 .nav-item.active { color: #7986CB; }
+    .d3 .nav-icon { font-size: 18px; margin-bottom: 2px; }
+
+    /* ============================
+       DIRECTION 4 — Carte Géo
+    ============================ */
+    .d4 .phone-screen { background: #F5F5F5; }
+    .d4 .map-zone {
+      height: 180px; background: linear-gradient(135deg, #C5CAE9 0%, #B2DFDB 50%, #E8EAF6 100%);
+      position: relative; overflow: hidden;
+    }
+    .d4 .map-overlay {
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M0 30 L60 30 M30 0 L30 60' stroke='%23FFFFFF' stroke-width='0.5' opacity='0.4'/%3E%3C/svg%3E") repeat;
+    }
+    .d4 .map-pin {
+      position: absolute; width: 24px; height: 24px; border-radius: 50%;
+      border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800;
+    }
+    .d4 .map-pin.p1 { background: var(--indigo); color: white; top: 40px; left: 60px; }
+    .d4 .map-pin.p2 { background: var(--success); color: white; top: 80px; left: 120px; }
+    .d4 .map-pin.p3 { background: var(--teal); color: white; top: 50px; left: 190px; }
+    .d4 .map-pin.p4 { background: var(--warning); color: white; top: 110px; left: 80px; }
+    .d4 .map-route {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    }
+    .d4 .map-header {
+      position: absolute; top: 12px; left: 12px; right: 12px;
+      background: white; border-radius: 10px; padding: 8px 12px;
+      display: flex; justify-content: space-between; align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .d4 .map-header-title { font-size: 13px; font-weight: 700; color: var(--indigo-dark); }
+    .d4 .map-header-sub { font-size: 10px; color: var(--text-secondary); }
+    .d4 .map-eta { font-size: 11px; font-weight: 700; color: var(--teal); }
+    .d4 .next-patient {
+      margin: 12px 16px 8px; background: white; border-radius: 12px;
+      padding: 12px 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .d4 .next-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--teal); font-weight: 700; }
+    .d4 .next-name { font-size: 15px; font-weight: 700; color: var(--indigo-dark); }
+    .d4 .next-address { font-size: 11px; color: var(--text-secondary); }
+    .d4 .next-icon {
+      width: 40px; height: 40px; border-radius: 10px; background: var(--teal);
+      color: white; font-size: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .d4 .btn-nav {
+      margin: 0 16px 8px; background: var(--indigo); color: white; border: none;
+      border-radius: 10px; padding: 13px; font-size: 14px; font-weight: 700;
+      width: calc(100% - 32px); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .d4 .mini-list { flex: 1; overflow-y: auto; padding: 0 16px; display: flex; flex-direction: column; gap: 6px; }
+    .d4 .mini-item {
+      background: white; border-radius: 8px; padding: 8px 12px;
+      display: flex; align-items: center; gap: 10px; font-size: 12px;
+    }
+    .d4 .mini-num { width: 20px; height: 20px; border-radius: 50%; background: var(--indigo-light); color: var(--indigo); font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .d4 .mini-name { font-weight: 600; color: #1A1A2E; flex: 1; }
+    .d4 .mini-time { font-size: 10px; color: var(--text-secondary); }
+    .d4 .bottom-nav { display: flex; background: white; border-top: 1px solid var(--border); }
+    .d4 .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 4px; font-size: 9px; color: var(--text-disabled); }
+    .d4 .nav-item.active { color: var(--indigo); }
+    .d4 .nav-icon { font-size: 18px; margin-bottom: 2px; }
+
+    /* ============================
+       DIRECTION 5 — Teal Dashboard
+    ============================ */
+    .d5 .phone-screen { background: var(--teal); }
+    .d5 .header { padding: 14px 16px 16px; }
+    .d5 .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .d5 .header-greeting { font-size: 12px; color: rgba(255,255,255,0.7); }
+    .d5 .header-name { font-size: 20px; font-weight: 800; color: white; }
+    .d5 .time-badge { background: rgba(255,255,255,0.2); border-radius: 100px; padding: 4px 10px; font-size: 11px; color: white; }
+    .d5 .progress-circle-zone { display: flex; align-items: center; gap: 16px; }
+    .d5 .progress-ring { width: 60px; height: 60px; flex-shrink: 0; }
+    .d5 .progress-ring text { font-size: 14px; font-weight: 800; fill: white; }
+    .d5 .progress-stats { }
+    .d5 .pstat { color: rgba(255,255,255,0.85); font-size: 12px; margin-bottom: 2px; }
+    .d5 .pstat strong { color: white; font-size: 14px; font-weight: 700; }
+    .d5 .main-area {
+      flex: 1; background: #F5F5F5; border-radius: 24px 24px 0 0;
+      overflow-y: auto; padding: 16px;
+    }
+    .d5 .section-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); font-weight: 700; margin-bottom: 10px; }
+    .d5 .patient-row {
+      background: white; border-radius: 12px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06); cursor: pointer;
+    }
+    .d5 .row-num {
+      width: 32px; height: 32px; border-radius: 10px; background: #E0F2F1;
+      color: var(--teal); font-size: 14px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .d5 .patient-row.done .row-num { background: #E8F5E9; color: var(--success); }
+    .d5 .row-name { font-size: 14px; font-weight: 600; color: #1A1A2E; flex: 1; }
+    .d5 .row-sub { font-size: 11px; color: var(--text-secondary); }
+    .d5 .row-check { font-size: 18px; }
+    .d5 .bottom-nav { display: flex; background: white; border-top: 1px solid var(--border); }
+    .d5 .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 4px; font-size: 9px; color: var(--text-disabled); }
+    .d5 .nav-item.active { color: var(--teal); }
+    .d5 .nav-icon { font-size: 18px; margin-bottom: 2px; }
+
+    /* ============================
+       DIRECTION 6 — Minimaliste Blanc
+    ============================ */
+    .d6 .phone-screen { background: white; }
+    .d6 .header { padding: 16px 20px 10px; border-bottom: 1px solid #F0F0F0; }
+    .d6 .header-row1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+    .d6 .header-date { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .d6 .sync-icon { font-size: 14px; color: var(--success); }
+    .d6 .header-title { font-size: 26px; font-weight: 900; color: var(--indigo-dark); }
+    .d6 .header-sub { font-size: 13px; color: var(--text-secondary); }
+    .d6 .time-bar {
+      display: flex; gap: 4px; padding: 10px 20px; overflow-x: auto;
+    }
+    .d6 .time-slot {
+      flex-shrink: 0; background: #F5F5F5; border-radius: 8px;
+      padding: 6px 10px; font-size: 10px; color: var(--text-secondary); text-align: center;
+    }
+    .d6 .time-slot.active { background: var(--indigo); color: white; }
+    .d6 .time-slot .ts-time { font-weight: 700; display: block; }
+    .d6 .time-slot .ts-name { white-space: nowrap; }
+    .d6 .patient-list { flex: 1; overflow-y: auto; }
+    .d6 .patient-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 20px; border-bottom: 1px solid #F9F9F9; cursor: pointer;
+    }
+    .d6 .patient-row:hover { background: #FAFAFA; }
+    .d6 .row-index { font-size: 12px; font-weight: 700; color: var(--text-disabled); width: 18px; text-align: center; flex-shrink: 0; }
+    .d6 .row-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--indigo); flex-shrink: 0; }
+    .d6 .patient-row.done .row-dot { background: var(--success); }
+    .d6 .row-body { flex: 1; }
+    .d6 .row-name { font-size: 15px; font-weight: 600; color: #1A1A2E; }
+    .d6 .row-detail { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .d6 .row-time { font-size: 12px; font-weight: 600; color: var(--indigo); }
+    .d6 .patient-row.done .row-name { text-decoration: line-through; color: var(--text-disabled); }
+    .d6 .cta-zone { padding: 12px 20px; border-top: 1px solid #F0F0F0; }
+    .d6 .btn-main { width: 100%; background: var(--indigo); color: white; border: none; border-radius: 10px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .d6 .bottom-nav { display: flex; border-top: 1px solid #F0F0F0; }
+    .d6 .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 8px 4px; font-size: 9px; color: var(--text-disabled); }
+    .d6 .nav-item.active { color: var(--indigo); }
+    .d6 .nav-icon { font-size: 18px; margin-bottom: 2px; }
+
+    /* Evaluation */
+    .eval-section {
+      max-width: 1600px; margin: 0 auto 40px; padding: 0 24px;
+    }
+    .eval-title { font-size: 20px; font-weight: 800; color: var(--indigo-dark); margin-bottom: 16px; text-align: center; }
+    .eval-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .eval-card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .eval-card h4 { font-size: 13px; font-weight: 700; color: var(--indigo); margin-bottom: 8px; }
+    .eval-criteria { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+    .eval-criteria li { margin-bottom: 4px; padding-left: 12px; position: relative; }
+    .eval-criteria li::before { content: "→"; position: absolute; left: 0; color: var(--teal); }
+
+    footer { text-align: center; padding: 24px; color: var(--text-secondary); font-size: 12px; }
+  </style>
+</head>
+<body>
+
+<nav class="page-nav">
+  <div>
+    <h1>KURA — Design Directions</h1>
+    <span>Step 9 — 6 Directions Visuelles</span>
+  </div>
+  <div class="nav-pills">
+    <button class="nav-pill">D1 Liste Épurée</button>
+    <button class="nav-pill">D2 Cards</button>
+    <button class="nav-pill">D3 Dark Pro</button>
+    <button class="nav-pill">D4 Carte Géo</button>
+    <button class="nav-pill">D5 Teal Dashboard</button>
+    <button class="nav-pill">D6 Minimaliste</button>
+  </div>
+</nav>
+
+<div class="directions-grid">
+
+  <!-- DIRECTION 1 -->
+  <div class="direction-card">
+    <div class="direction-label">
+      <h3>Direction 1 — Liste Épurée</h3>
+      <span>Simple & Efficace</span>
+    </div>
+    <div class="direction-desc">Navigation bottom bar, header indigo plein, liste patients avec indicateurs de progression. Approche la plus familière pour Michel.</div>
+    <div class="mockup">
+      <div class="phone-frame d1">
+        <div class="phone-screen">
+          <div class="d1 header">
+            <div class="d1 header-left">
+              <h2>Bonjour Marie 👋</h2>
+              <p>Vendredi 31 jan. 2026</p>
+            </div>
+            <div class="d1 sync-badge">
+              <div class="d1 sync-dot"></div>
+              Sync ✓
+            </div>
+          </div>
+          <div class="d1 progress-bar-container">
+            <div class="d1 progress-label">
+              <span>Progression journée</span>
+              <span>3/8 patients</span>
+            </div>
+            <div class="d1 progress-bar">
+              <div class="d1 progress-fill"></div>
+            </div>
+          </div>
+          <div class="d1 patient-list">
+            <div class="d1 patient-item done">
+              <div class="d1 patient-num">✓</div>
+              <div class="d1 patient-info">
+                <div class="d1 patient-name">Mme Dupont</div>
+                <div class="d1 patient-meta">12 rue de la Paix • 8h00</div>
+              </div>
+              <span class="d1 patient-status status-done">✓ Fait</span>
+            </div>
+            <div class="d1 patient-item done">
+              <div class="d1 patient-num">✓</div>
+              <div class="d1 patient-info">
+                <div class="d1 patient-name">M. Martin</div>
+                <div class="d1 patient-meta">4 allée des Roses • 8h45</div>
+              </div>
+              <span class="d1 patient-status status-done">✓ Fait</span>
+            </div>
+            <div class="d1 patient-item done">
+              <div class="d1 patient-num">✓</div>
+              <div class="d1 patient-info">
+                <div class="d1 patient-name">Mme Bernard</div>
+                <div class="d1 patient-meta">7 rue du Moulin • 9h30</div>
+              </div>
+              <span class="d1 patient-status status-done">✓ Fait</span>
+            </div>
+            <div class="d1 patient-item">
+              <div class="d1 patient-num">4</div>
+              <div class="d1 patient-info">
+                <div class="d1 patient-name">M. Lefebvre</div>
+                <div class="d1 patient-meta">23 bd Victor Hugo • 10h15</div>
+              </div>
+              <span class="d1 patient-status status-pending">→</span>
+            </div>
+            <div class="d1 patient-item">
+              <div class="d1 patient-num">5</div>
+              <div class="d1 patient-info">
+                <div class="d1 patient-name">Mme Petit</div>
+                <div class="d1 patient-meta">9 impasse du Cerf • 11h00</div>
+              </div>
+              <span class="d1 patient-status status-pending">→</span>
+            </div>
+          </div>
+          <div class="d1 bottom-bar">
+            <button class="d1 btn-primary">🗺️ Naviguer → M. Lefebvre</button>
+            <button class="d1 btn-secondary">+</button>
+          </div>
+          <div class="d1 bottom-nav">
+            <div class="d1 nav-item active"><span class="d1 nav-icon">🗓️</span>Planning</div>
+            <div class="d1 nav-item"><span class="d1 nav-icon">👥</span>Patients</div>
+            <div class="d1 nav-item"><span class="d1 nav-icon">📝</span>Transm.</div>
+            <div class="d1 nav-item"><span class="d1 nav-icon">👤</span>Profil</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIRECTION 2 -->
+  <div class="direction-card">
+    <div class="direction-label">
+      <h3>Direction 2 — Cards Visuelles</h3>
+      <span>Moderne & Riche</span>
+    </div>
+    <div class="direction-desc">Cards avec bordure colorée statut, stats en chips, layout dense mais lisible. Favoris Sophie (digital native).</div>
+    <div class="mockup">
+      <div class="phone-frame d2">
+        <div class="phone-screen" style="position:relative">
+          <div class="d2 header">
+            <div>
+              <div class="d2 header-title">Planning</div>
+              <div class="d2 header-date">Vendredi 31 jan.</div>
+            </div>
+            <div class="d2 header-sync">✅ Synchronisé</div>
+          </div>
+          <div class="d2 stats-row">
+            <div class="d2 stat-chip"><div class="d2 stat-value">8</div><div class="d2 stat-label">Patients</div></div>
+            <div class="d2 stat-chip green"><div class="d2 stat-value">3</div><div class="d2 stat-label">Vus</div></div>
+            <div class="d2 stat-chip orange"><div class="d2 stat-value">5</div><div class="d2 stat-label">Restants</div></div>
+          </div>
+          <div class="d2 cards-list">
+            <div class="d2 patient-card done">
+              <div class="d2 card-order">✓</div>
+              <div class="d2 card-info">
+                <div class="d2 card-name">Mme Dupont</div>
+                <div class="d2 card-address">12 rue de la Paix</div>
+                <div class="d2 card-tags"><span class="d2 tag green">✓ Transmission</span></div>
+              </div>
+              <span class="d2 card-action">›</span>
+            </div>
+            <div class="d2 patient-card done">
+              <div class="d2 card-order">✓</div>
+              <div class="d2 card-info">
+                <div class="d2 card-name">M. Martin</div>
+                <div class="d2 card-address">4 allée des Roses</div>
+                <div class="d2 card-tags"><span class="d2 tag green">✓ Transmission</span></div>
+              </div>
+              <span class="d2 card-action">›</span>
+            </div>
+            <div class="d2 patient-card">
+              <div class="d2 card-order">4</div>
+              <div class="d2 card-info">
+                <div class="d2 card-name">M. Lefebvre</div>
+                <div class="d2 card-address">23 bd Victor Hugo</div>
+                <div class="d2 card-tags"><span class="d2 tag">Pansement • 10h15</span></div>
+              </div>
+              <span class="d2 card-action">›</span>
+            </div>
+            <div class="d2 patient-card">
+              <div class="d2 card-order">5</div>
+              <div class="d2 card-info">
+                <div class="d2 card-name">Mme Petit</div>
+                <div class="d2 card-address">9 impasse du Cerf</div>
+                <div class="d2 card-tags"><span class="d2 tag">Injection • 11h00</span></div>
+              </div>
+              <span class="d2 card-action">›</span>
+            </div>
+          </div>
+          <div class="d2 fab">🗺️</div>
+          <div class="d2 bottom-nav">
+            <div class="d2 nav-item active"><span class="d2 nav-icon">🗓️</span>Planning</div>
+            <div class="d2 nav-item"><span class="d2 nav-icon">👥</span>Patients</div>
+            <div class="d2 nav-item"><span class="d2 nav-icon">📝</span>Transm.</div>
+            <div class="d2 nav-item"><span class="d2 nav-icon">👤</span>Profil</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIRECTION 3 -->
+  <div class="direction-card">
+    <div class="direction-label">
+      <h3>Direction 3 — Dark Pro</h3>
+      <span>OLED Premium</span>
+    </div>
+    <div class="direction-desc">Interface sombre OLED complète (pas juste le soir). Aspect premium et focus total sur les données. Indigo lumineux sur fond noir.</div>
+    <div class="mockup">
+      <div class="phone-frame d3">
+        <div class="phone-screen">
+          <div class="d3 header">
+            <div>
+              <div class="d3 header-greeting">Bonjour,</div>
+              <div class="d3 header-title">Marie 👋</div>
+            </div>
+            <div class="d3 header-sync">🟢 Sync</div>
+          </div>
+          <div class="d3 date-chip">
+            <span>Vendredi 31 janv.</span>
+            <strong>3/8 patients · 5 restants</strong>
+          </div>
+          <div class="d3 patient-list">
+            <div class="d3 patient-row done">
+              <div class="d3 row-num">✓</div>
+              <div class="d3 row-info">
+                <div class="d3 row-name">Mme Dupont</div>
+                <div class="d3 row-meta">12 rue de la Paix</div>
+              </div>
+              <span class="d3 row-badge done-badge">✓ Fait</span>
+            </div>
+            <div class="d3 patient-row done">
+              <div class="d3 row-num">✓</div>
+              <div class="d3 row-info">
+                <div class="d3 row-name">M. Martin</div>
+                <div class="d3 row-meta">4 allée des Roses</div>
+              </div>
+              <span class="d3 row-badge done-badge">✓ Fait</span>
+            </div>
+            <div class="d3 patient-row">
+              <div class="d3 row-num">4</div>
+              <div class="d3 row-info">
+                <div class="d3 row-name">M. Lefebvre</div>
+                <div class="d3 row-meta">23 bd Victor Hugo · 10h15</div>
+              </div>
+              <span class="d3 row-badge">Suivant</span>
+            </div>
+            <div class="d3 patient-row">
+              <div class="d3 row-num">5</div>
+              <div class="d3 row-info">
+                <div class="d3 row-name">Mme Petit</div>
+                <div class="d3 row-meta">9 impasse du Cerf · 11h00</div>
+              </div>
+              <span class="d3 row-badge">11h00</span>
+            </div>
+          </div>
+          <div class="d3 bottom-action">
+            <button class="d3 btn-dark-primary">🗺️ Naviguer</button>
+            <button class="d3 btn-dark-secondary">📝</button>
+          </div>
+          <div class="d3 bottom-nav">
+            <div class="d3 nav-item active"><span class="d3 nav-icon">🗓️</span>Planning</div>
+            <div class="d3 nav-item"><span class="d3 nav-icon">👥</span>Patients</div>
+            <div class="d3 nav-item"><span class="d3 nav-icon">📝</span>Transm.</div>
+            <div class="d3 nav-item"><span class="d3 nav-icon">👤</span>Profil</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIRECTION 4 -->
+  <div class="direction-card">
+    <div class="direction-label">
+      <h3>Direction 4 — Carte Géographique</h3>
+      <span>Navigation Centrée</span>
+    </div>
+    <div class="direction-desc">Carte géo en hero, patient suivant mis en avant, liste condensée dessous. Style inspiré Waze. Focus itinéraire.</div>
+    <div class="mockup">
+      <div class="phone-frame d4">
+        <div class="phone-screen">
+          <div class="d4 map-zone">
+            <div class="d4 map-overlay"></div>
+            <svg class="d4 map-route" viewBox="0 0 320 180" fill="none">
+              <path d="M72 52 L132 92 L202 62 L92 122" stroke="#3949AB" stroke-width="2.5" stroke-dasharray="6,3" opacity="0.7"/>
+            </svg>
+            <div class="d4 map-pin p1">1</div>
+            <div class="d4 map-pin p2">✓</div>
+            <div class="d4 map-pin p3">3</div>
+            <div class="d4 map-pin p4">4</div>
+            <div class="d4 map-header">
+              <div>
+                <div class="d4 map-header-title">Tournée en cours</div>
+                <div class="d4 map-header-sub">3/8 patients · Vendredi</div>
+              </div>
+              <div class="d4 map-eta">ETA 10h15</div>
+            </div>
+          </div>
+          <div class="d4 next-patient">
+            <div class="d4 next-icon">🏠</div>
+            <div>
+              <div class="d4 next-label">Patient suivant</div>
+              <div class="d4 next-name">M. Lefebvre</div>
+              <div class="d4 next-address">23 bd Victor Hugo · 10h15 · 8 min</div>
+            </div>
+          </div>
+          <button class="d4 btn-nav">🗺️ Lancer la navigation</button>
+          <div class="d4 mini-list">
+            <div class="d4 mini-item">
+              <div class="d4 mini-num">5</div>
+              <div class="d4 mini-name">Mme Petit</div>
+              <div class="d4 mini-time">11h00</div>
+            </div>
+            <div class="d4 mini-item">
+              <div class="d4 mini-num">6</div>
+              <div class="d4 mini-name">M. Renard</div>
+              <div class="d4 mini-time">11h45</div>
+            </div>
+          </div>
+          <div class="d4 bottom-nav">
+            <div class="d4 nav-item active"><span class="d4 nav-icon">🗓️</span>Planning</div>
+            <div class="d4 nav-item"><span class="d4 nav-icon">👥</span>Patients</div>
+            <div class="d4 nav-item"><span class="d4 nav-icon">📝</span>Transm.</div>
+            <div class="d4 nav-item"><span class="d4 nav-icon">👤</span>Profil</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIRECTION 5 -->
+  <div class="direction-card">
+    <div class="direction-label">
+      <h3>Direction 5 — Teal Dashboard</h3>
+      <span>Sérénité & Progression</span>
+    </div>
+    <div class="direction-desc">Header Teal avec cercle de progression, fond blanc en dessous. Émotion de sérénité et accomplissement. Doux mais professionnel.</div>
+    <div class="mockup">
+      <div class="phone-frame d5">
+        <div class="phone-screen">
+          <div class="d5 header">
+            <div class="d5 header-top">
+              <div>
+                <div class="d5 header-greeting">Bonjour 👋</div>
+                <div class="d5 header-name">Marie</div>
+              </div>
+              <div class="d5 time-badge">10h02</div>
+            </div>
+            <div class="d5 progress-circle-zone">
+              <svg class="d5 progress-ring" viewBox="0 0 60 60">
+                <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="5"/>
+                <circle cx="30" cy="30" r="24" fill="none" stroke="white" stroke-width="5"
+                  stroke-dasharray="150.8" stroke-dashoffset="94.2" stroke-linecap="round"
+                  transform="rotate(-90 30 30)"/>
+                <text x="30" y="35" text-anchor="middle">3/8</text>
+              </svg>
+              <div class="d5 progress-stats">
+                <div class="d5 pstat"><strong>5 patients</strong> restants</div>
+                <div class="d5 pstat"><strong>~2h30</strong> estimées</div>
+                <div class="d5 pstat">🟢 Sync à jour</div>
+              </div>
+            </div>
+          </div>
+          <div class="d5 main-area">
+            <div class="d5 section-title">À faire aujourd'hui</div>
+            <div class="d5 patient-row">
+              <div class="d5 row-num">4</div>
+              <div>
+                <div class="d5 row-name">M. Lefebvre</div>
+                <div class="d5 row-sub">23 bd Victor Hugo · 10h15</div>
+              </div>
+              <div class="d5 row-check">›</div>
+            </div>
+            <div class="d5 patient-row">
+              <div class="d5 row-num">5</div>
+              <div>
+                <div class="d5 row-name">Mme Petit</div>
+                <div class="d5 row-sub">9 impasse du Cerf · 11h00</div>
+              </div>
+              <div class="d5 row-check">›</div>
+            </div>
+            <div class="d5 patient-row done">
+              <div class="d5 row-num">✓</div>
+              <div>
+                <div class="d5 row-name" style="text-decoration:line-through;color:#B0BEC5">Mme Dupont</div>
+                <div class="d5 row-sub">Terminé · 8h00</div>
+              </div>
+              <div class="d5 row-check">✅</div>
+            </div>
+          </div>
+          <div class="d5 bottom-nav">
+            <div class="d5 nav-item active"><span class="d5 nav-icon">🗓️</span>Planning</div>
+            <div class="d5 nav-item"><span class="d5 nav-icon">👥</span>Patients</div>
+            <div class="d5 nav-item"><span class="d5 nav-icon">📝</span>Transm.</div>
+            <div class="d5 nav-item"><span class="d5 nav-icon">👤</span>Profil</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DIRECTION 6 -->
+  <div class="direction-card">
+    <div class="direction-label">
+      <h3>Direction 6 — Minimaliste Blanc</h3>
+      <span>Ultra-Épuré</span>
+    </div>
+    <div class="direction-desc">Typographie dominante, blanc total, barre temporelle horizontale. Clarté absolue. Idéal Michel. Inspiration apps calendrier premium.</div>
+    <div class="mockup">
+      <div class="phone-frame d6">
+        <div class="phone-screen">
+          <div class="d6 header">
+            <div class="d6 header-row1">
+              <span class="d6 header-date">Vendredi 31 janv. 2026</span>
+              <span class="d6 sync-icon">✅</span>
+            </div>
+            <div class="d6 header-title">Planning</div>
+            <div class="d6 header-sub">3 vus · 5 restants · 8 total</div>
+          </div>
+          <div class="d6 time-bar">
+            <div class="d6 time-slot"><span class="d6 ts-time">8h00</span><span class="d6 ts-name">Dupont</span></div>
+            <div class="d6 time-slot"><span class="d6 ts-time">8h45</span><span class="d6 ts-name">Martin</span></div>
+            <div class="d6 time-slot active"><span class="d6 ts-time">10h15</span><span class="d6 ts-name">Lefebvre</span></div>
+            <div class="d6 time-slot"><span class="d6 ts-time">11h00</span><span class="d6 ts-name">Petit</span></div>
+            <div class="d6 time-slot"><span class="d6 ts-time">11h45</span><span class="d6 ts-name">Renard</span></div>
+          </div>
+          <div class="d6 patient-list">
+            <div class="d6 patient-row done">
+              <span class="d6 row-index">1</span>
+              <span class="d6 row-dot"></span>
+              <div class="d6 row-body">
+                <div class="d6 row-name">Mme Dupont</div>
+                <div class="d6 row-detail">12 rue de la Paix · Pansement</div>
+              </div>
+              <span class="d6 row-time" style="color:#43A047">✓</span>
+            </div>
+            <div class="d6 patient-row done">
+              <span class="d6 row-index">2</span>
+              <span class="d6 row-dot"></span>
+              <div class="d6 row-body">
+                <div class="d6 row-name">M. Martin</div>
+                <div class="d6 row-detail">4 allée des Roses · Injection</div>
+              </div>
+              <span class="d6 row-time" style="color:#43A047">✓</span>
+            </div>
+            <div class="d6 patient-row">
+              <span class="d6 row-index">4</span>
+              <span class="d6 row-dot"></span>
+              <div class="d6 row-body">
+                <div class="d6 row-name">M. Lefebvre</div>
+                <div class="d6 row-detail">23 bd Victor Hugo · Constantes</div>
+              </div>
+              <span class="d6 row-time">10h15</span>
+            </div>
+            <div class="d6 patient-row">
+              <span class="d6 row-index">5</span>
+              <span class="d6 row-dot"></span>
+              <div class="d6 row-body">
+                <div class="d6 row-name">Mme Petit</div>
+                <div class="d6 row-detail">9 impasse du Cerf · Toilette</div>
+              </div>
+              <span class="d6 row-time">11h00</span>
+            </div>
+          </div>
+          <div class="d6 cta-zone">
+            <button class="d6 btn-main">🗺️ Naviguer vers M. Lefebvre</button>
+          </div>
+          <div class="d6 bottom-nav">
+            <div class="d6 nav-item active"><span class="d6 nav-icon">🗓️</span>Planning</div>
+            <div class="d6 nav-item"><span class="d6 nav-icon">👥</span>Patients</div>
+            <div class="d6 nav-item"><span class="d6 nav-icon">📝</span>Transm.</div>
+            <div class="d6 nav-item"><span class="d6 nav-icon">👤</span>Profil</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- EVALUATION -->
+<div class="eval-section">
+  <div class="eval-title">🔍 Critères d'Évaluation</div>
+  <div class="eval-grid">
+    <div class="eval-card">
+      <h4>👤 Pour Marie (80%)</h4>
+      <ul class="eval-criteria">
+        <li>Progression journée visible au premier coup d'œil</li>
+        <li>Navigation vers patient suivant en 1 tap</li>
+        <li>Accès rapide à la saisie transmission</li>
+        <li>Lisible en plein soleil</li>
+      </ul>
+    </div>
+    <div class="eval-card">
+      <h4>👩‍💼 Pour Sophie (15%)</h4>
+      <ul class="eval-criteria">
+        <li>Densité d'informations suffisante (stats visibles)</li>
+        <li>Interface moderne et tech</li>
+        <li>Navigation rapide entre sections</li>
+        <li>Aspect premium différenciant</li>
+      </ul>
+    </div>
+    <div class="eval-card">
+      <h4>👨‍⚕️ Pour Michel (5%)</h4>
+      <ul class="eval-criteria">
+        <li>Interface ultra-simple, pas de surcharge</li>
+        <li>Texte grand et lisible</li>
+        <li>Actions évidentes sans explication</li>
+        <li>Courbe d'apprentissage minimale</li>
+      </ul>
+    </div>
+    <div class="eval-card">
+      <h4>📐 Technique & Contraintes</h4>
+      <ul class="eval-criteria">
+        <li>Touch targets ≥ 48px partout</li>
+        <li>Contraste WCAG AA minimum</li>
+        <li>Réalisable avec React Native Paper</li>
+        <li>Dark mode OLED compatible</li>
+      </ul>
+    </div>
+    <div class="eval-card">
+      <h4>🎭 Identité de Marque</h4>
+      <ul class="eval-criteria">
+        <li>Palette Indigo/Teal bien utilisée</li>
+        <li>Sentiment "Empowerment" présent</li>
+        <li>Se différencie de Vega/Ozzen</li>
+        <li>Crédibilité healthcare maintenue</li>
+      </ul>
+    </div>
+    <div class="eval-card">
+      <h4>✨ Expérience Centrale</h4>
+      <ul class="eval-criteria">
+        <li>Gain de temps visuellement perceptible</li>
+        <li>Progression journée évidente</li>
+        <li>Saisie transmission accessible facilement</li>
+        <li>Statut sync visible sans être intrusif</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<footer>KURA — UX Design Directions · Step 9 · Indigo Empowerment Theme · Potpot 2026</footer>
+
+</body>
+</html>
