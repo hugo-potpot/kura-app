@@ -1,0 +1,140 @@
+# generated: 2026-03-13
+# project: idel-app (KURA)
+# project_key: idel-app
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-03-13
+project: idel-app (KURA)
+project_key: idel-app
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Epic 1 : Fondations & Authentification Sécurisée
+  # ─────────────────────────────────────────────────────────────────────────────
+  epic-1: in-progress
+  1-1-initialisation-du-monorepo-socle-technique: in-progress
+  1-2-creation-de-compte-utilisateur-avec-mfa: backlog
+  1-3-connexion-securisee-avec-email-mfa: backlog
+  1-4-authentification-biometrique-face-id-touch-id: backlog
+  1-5-authentification-offline-avec-jwt-local: backlog
+  1-6-reinitialisation-de-mot-de-passe: backlog
+  1-7-gestion-securite-deconnexion-revocation-appareil: backlog
+  epic-1-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Epic 2 : Gestion de la Structure & des Utilisateurs
+  # ─────────────────────────────────────────────────────────────────────────────
+  epic-2: backlog
+  2-1-creation-de-la-structure-professionnelle-onboarding-admin: backlog
+  2-2-invitation-des-idel-collaborateurs: backlog
+  2-3-invitation-des-medecins-prescripteurs: backlog
+  2-4-gestion-des-roles-permissions-desactivation-de-compte: backlog
+  2-5-consultation-de-lequipe-gestion-du-profil-utilisateur: backlog
+  epic-2-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Epic 3 : Gestion des Patients
+  # ─────────────────────────────────────────────────────────────────────────────
+  epic-3: backlog
+  3-1-creation-dun-dossier-patient-avec-geolocalisation: backlog
+  3-2-consultation-modification-de-la-fiche-patient: backlog
+  3-3-attribution-des-patients-aux-idel-isolation-multi-tenant: backlog
+  3-4-recherche-filtrage-liste-des-patients: backlog
+  3-5-archivage-suppression-conformite-rgpd: backlog
+  3-6-visualisation-des-constantes-graphiques-patient: backlog
+  epic-3-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Epic 4 : Planning Intelligent de Tournée
+  # ─────────────────────────────────────────────────────────────────────────────
+  epic-4: backlog
+  4-1-affichage-du-planning-quotidien-ecran-principal: backlog
+  4-2-generation-automatique-du-planning-optimise-algorithme-ia: backlog
+  4-3-modification-manuelle-du-planning-drag-drop: backlog
+  4-4-gestion-des-patients-absents-urgences: backlog
+  4-5-carte-itineraire-navigation-gps: backlog
+  4-6-preferences-de-planning: backlog
+  epic-4-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Epic 5 : Transmissions & Documentation Médicale
+  # ─────────────────────────────────────────────────────────────────────────────
+  epic-5: backlog
+  5-1-saisie-de-transmission-par-dictee-vocale-ia: backlog
+  5-2-validation-obligatoire-de-la-transcription-ia-conformite-hds: backlog
+  5-3-saisie-de-transmission-par-texte-templates: backlog
+  5-4-enregistrement-des-constantes-vitales: backlog
+  5-5-historique-des-transmissions-audit-trail: backlog
+  epic-5-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Epic 6 : Mode Offline-First & Synchronisation
+  # ─────────────────────────────────────────────────────────────────────────────
+  epic-6: backlog
+  6-1-stockage-local-fonctionnement-100-offline: backlog
+  6-2-indicateur-visuel-de-statut-de-synchronisation: backlog
+  6-3-synchronisation-automatique-manuelle: backlog
+  6-4-resolution-de-conflits-alertes-dechec-de-sync: backlog
+  6-5-effacement-securise-des-donnees-locales: backlog
+  epic-6-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Epic 7 : Notifications & Alertes
+  # ─────────────────────────────────────────────────────────────────────────────
+  epic-7: backlog
+  7-1-notifications-push-critiques-firebase-fcm: backlog
+  7-2-notifications-informatives-locales-programmees: backlog
+  7-3-configuration-des-notifications-par-lutilisateur: backlog
+  epic-7-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Epic 8 : Back Office Web d'Administration
+  # ─────────────────────────────────────────────────────────────────────────────
+  epic-8: backlog
+  8-1-tableau-de-bord-acces-back-office: backlog
+  8-2-gestion-de-la-liste-des-patients-back-office: backlog
+  8-3-import-export-csv-des-patients: backlog
+  8-4-vue-des-idel-modification-des-plannings: backlog
+  epic-8-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Epic 9 : Conformité, Sécurité & Gouvernance des Données
+  # ─────────────────────────────────────────────────────────────────────────────
+  epic-9: backlog
+  9-1-journal-daudit-tracabilite-complete: backlog
+  9-2-droits-patients-export-droit-a-loubli-rgpd: backlog
+  9-3-chiffrement-des-donnees-securite-perimetrique: backlog
+  9-4-authentification-fido2-webauthn-mfa-biometrique: backlog
+  epic-9-retrospective: optional

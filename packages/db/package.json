@@ -1,0 +1,31 @@
+{
+  "name": "@kura/db",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./schema/index.ts",
+  "types": "./schema/index.ts",
+  "exports": {
+    ".": "./schema/index.ts",
+    "./schema": "./schema/index.ts",
+    "./seed": "./seed/fixtures.ts",
+    "./drizzle.config": "./drizzle.config.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx seed/fixtures.ts",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@kura/shared": "workspace:*",
+    "drizzle-orm": "^0.38.3",
+    "ulidx": "^2.3.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30.2",
+    "postgres": "^3.4.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
