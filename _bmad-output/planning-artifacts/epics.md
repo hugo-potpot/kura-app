@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ["step-01-validate-prerequisites", "step-02-design-epics"]
+stepsCompleted: ["step-01-validate-prerequisites", "step-02-design-epics", "step-03-create-stories", "step-04-final-validation"]
 inputDocuments:
   - type: prd
     path: "_bmad-output/planning-artifacts/prd.md"
@@ -1155,7 +1155,7 @@ Afin d'alimenter l'historique clinique consultable par le médecin prescripteur 
 **When** je retourne à la fiche patient
 **Then** le graphique `ConstantesLineChart` est mis à jour immédiatement avec les nouvelles valeurs
 
-**Given** une valeur hors plage normale (ex. tension > 18/11)
+**Given** une valeur hors plage normale (exb. tension > 18/11)
 **When** j'enregistre la constante
 **Then** une alerte "Valeur hors norme — vérifiez avant d'enregistrer" s'affiche avec icône ⚠️ + couleur orange
 **And** l'enregistrement reste possible après confirmation (l'IDEL reste seul responsable)
@@ -1185,3 +1185,417 @@ Afin de suivre l'évolution du suivi médical et disposer d'une traçabilité m�
 **Given** un médecin prescripteur consultant les transmissions de son patient
 **When** il accède à l'historique
 **Then** il voit toutes les transmissions en lecture seule, sans bouton "Modifier" ni "Supprimer"
+
+---
+
+## Epic 6 : Mode Offline-First & Synchronisation
+
+Les IDEL peuvent utiliser 100% des fonctionnalités sans connexion réseau (SQLite local chiffré AES-256). Les données se synchronisent automatiquement via queue persistante avec retry exponentiel, gestion de conflits "serveur gagne", et indicateur visuel de statut permanent dans l'interface.
+
+### Story 6.1 : Stockage Local & Fonctionnement 100% Offline
+
+En tant qu'IDEL en zone blanche,
+Je veux utiliser toutes les fonctionnalités de l'app sans connexion réseau,
+Afin de continuer mes soins et saisies sans interruption même en zone rurale sans 4G.
+
+**Acceptance Criteria:**
+
+**Given** l'app en mode avion (aucune connexion réseau)
+**When** j'accède à l'écran Planning, Patients ou Transmissions
+**Then** toutes les fonctionnalités sont disponibles normalement — aucun bouton grisé, aucun message "connexion requise" (NFR-REL-1)
+**And** les données affichées proviennent du SQLite local chiffré (SQLCipher AES-256)
+
+**Given** le SQLite local initialisé après la première connexion online
+**When** l'app démarre hors ligne
+**Then** les patients assignés, le planning des 2 semaines et les transmissions en attente sont disponibles localement
+
+**Given** une transmission saisie et validée hors ligne
+**When** la validation est confirmée
+**Then** elle est sauvegardée dans SQLite local immédiatement
+**And** une entrée `SyncMutation` (CREATE, entityType: "transmission") est ajoutée à la queue Zustand persistante
+
+**Given** le planning modifié ou une constante enregistrée hors ligne
+**When** l'action est effectuée
+**Then** la modification est sauvegardée localement et une `SyncMutation` correspondante est ajoutée à la queue
+
+---
+
+### Story 6.2 : Indicateur Visuel de Statut de Synchronisation
+
+En tant qu'IDEL,
+Je veux voir en permanence l'état de synchronisation de mes données dans l'interface,
+Afin de savoir que mes données sont sécurisées même sans réseau, sans anxiété ni incertitude.
+
+**Acceptance Criteria:**
+
+**Given** le `SyncStatusIndicator` (C5) présent dans le header de toutes les pages
+**When** toutes les données sont synchronisées
+**Then** l'icône ✅ verte s'affiche discrètement avec label "Synchronisé" (icône + texte, pas couleur seule)
+
+**Given** une synchronisation en cours
+**When** des mutations sont en cours d'envoi
+**Then** l'icône 🔄 orange animée s'affiche avec badge count du nombre d'éléments en attente
+
+**Given** des données en attente de sync (offline)
+**When** le réseau est absent
+**Then** l'icône ⚠️ rouge s'affiche avec badge count + message "Données sauvegardées localement" (rassurant, jamais "Erreur" seul)
+
+**Given** un tap sur le `SyncStatusIndicator`
+**When** je veux les détails
+**Then** un bottom sheet s'ouvre avec : date dernière sync, nombre d'éléments en attente, bouton "Synchroniser maintenant"
+
+---
+
+### Story 6.3 : Synchronisation Automatique & Manuelle
+
+En tant qu'IDEL,
+Je veux que mes données se synchronisent automatiquement dès que le réseau revient, avec possibilité de déclenchement manuel,
+Afin de ne jamais gérer la sync manuellement en conditions normales de travail.
+
+**Acceptance Criteria:**
+
+**Given** le réseau qui revient (détecté par `useNetworkStatus`)
+**When** des mutations sont en attente dans la queue Zustand
+**Then** le sync engine démarre automatiquement et envoie les mutations via `POST /api/v1/sync`
+**And** la sync s'effectue en arrière-plan sans bloquer l'UI
+
+**Given** un pull-to-refresh sur n'importe quel écran principal (FR52)
+**When** je tire vers le bas
+**Then** une synchronisation manuelle est déclenchée immédiatement
+**And** le `SyncStatusIndicator` passe à l'état "syncing" pendant l'opération
+
+**Given** la synchronisation réussie
+**When** toutes les mutations sont confirmées par le serveur
+**Then** elles sont retirées de la queue et le badge sync disparaît
+**And** les données locales sont mises à jour avec les données serveur (incluant les changements admin)
+
+**Given** la sync échoue (réseau coupé en cours)
+**When** une mutation échoue
+**Then** un retry automatique est planifié avec backoff exponentiel (1s, 2s, 4s, 8s… max 60s)
+**And** le `retryCount` de la `SyncMutation` est incrémenté (max 5 avant mise en erreur)
+
+---
+
+### Story 6.4 : Résolution de Conflits & Alertes d'Échec de Sync
+
+En tant qu'IDEL,
+Je veux que les conflits de données soient résolus automatiquement et être alerté si la sync échoue trop longtemps,
+Afin d'avoir toujours des données cohérentes sans gérer la complexité technique.
+
+**Acceptance Criteria:**
+
+**Given** un conflit entre une modification locale et une modification serveur (ex. admin modifie le patient pendant que l'IDEL est offline)
+**When** la synchronisation se produit
+**Then** la règle "serveur gagne" est appliquée automatiquement (données serveur écrasent les locales)
+**And** le conflit est enregistré dans l'historique des synchronisations pour débogage (FR57)
+
+**Given** une transmission ajoutée offline (nouvelle entrée)
+**When** la sync se produit
+**Then** la transmission est mergée côté serveur sans conflit (nouvelle entrée, pas d'écrasement)
+
+**Given** la sync qui échoue sans succès pendant 24 heures (FR55)
+**When** ce délai est atteint
+**Then** une notification locale s'affiche : "Vos données n'ont pas pu être synchronisées depuis 24h — vérifiez votre connexion"
+**And** un bouton "Synchroniser maintenant" est proposé directement dans la notification
+
+---
+
+### Story 6.5 : Effacement Sécurisé des Données Locales
+
+En tant qu'IDEL,
+Je veux pouvoir effacer toutes mes données locales lors de la désinscription d'un appareil,
+Afin de protéger les données patients en cas de vol, perte ou changement de téléphone.
+
+**Acceptance Criteria:**
+
+**Given** l'écran Paramètres > Sécurité > Appareils
+**When** je tape "Désinscrire cet appareil" et confirme le dialog (saisie du mot "CONFIRMER")
+**Then** toutes les données SQLite locales sont effacées de façon sécurisée (wipe complet)
+**And** le JWT est supprimé de SecureStore
+**And** l'app revient à l'écran de connexion
+
+**Given** un admin qui révoque un appareil à distance
+**When** l'IDEL ouvre l'app sur l'appareil révoqué
+**Then** les données locales sont effacées automatiquement au démarrage avant l'affichage de "Votre accès a été révoqué"
+
+**Given** l'effacement sécurisé effectué et l'IDEL qui se reconnecte
+**When** la première synchronisation post-connexion se produit
+**Then** les données sont re-téléchargées depuis le serveur (patients assignés, planning, historique)
+
+---
+
+## Epic 7 : Notifications & Alertes
+
+Les utilisateurs reçoivent des notifications push pertinentes via Firebase FCM (nouveau patient assigné, urgence, modification planning, révocation appareil) sans jamais exposer de données sensibles. Les notifications locales programmées (récap matinal, rappel 15 min) améliorent le quotidien terrain. Chaque type est configurable individuellement.
+
+### Story 7.1 : Notifications Push Critiques (Firebase FCM)
+
+En tant qu'utilisateur IDEL ou admin,
+Je veux recevoir des notifications push en temps réel pour les événements critiques,
+Afin d'être informé immédiatement des changements importants qui affectent ma tournée ou ma sécurité.
+
+**Acceptance Criteria:**
+
+**Given** Firebase FCM configuré avec token enregistré côté serveur pour cet appareil
+**When** un admin assigne un nouveau patient à un IDEL
+**Then** l'IDEL reçoit une notification push "Un nouveau patient vous a été assigné" en moins de 5 secondes (NFR-INT-1)
+**And** le corps de la notification ne contient jamais le nom du patient ni de données médicales (FR67, sécurité HDS)
+
+**Given** une urgence ajoutée au planning d'un IDEL
+**When** l'admin crée l'urgence depuis le Back Office
+**Then** l'IDEL reçoit "Une urgence a été ajoutée à votre planning" avec deep link vers l'écran Planning
+
+**Given** l'admin modifie le planning d'un IDEL depuis le Back Office
+**When** la modification est enregistrée
+**Then** l'IDEL reçoit "Votre planning a été modifié par votre admin" sans détails dans la notification
+
+**Given** un appareil révoqué par l'admin
+**When** la révocation est effectuée
+**Then** l'utilisateur reçoit "Votre accès a été révoqué sur cet appareil" avec priorité haute (FR62)
+
+---
+
+### Story 7.2 : Notifications Informatives & Locales Programmées
+
+En tant qu'IDEL,
+Je veux recevoir des rappels contextuels (récap matinal, prochain patient dans 15 min, sync réussie),
+Afin d'anticiper ma journée et rester informé sans ouvrir l'app constamment.
+
+**Acceptance Criteria:**
+
+**Given** l'heure de départ habituelle configurée dans les préférences de l'IDEL
+**When** le matin de chaque jour de tournée
+**Then** une notification locale programmée s'affiche "Votre planning du jour est prêt (N patients)" (FR65)
+
+**Given** un patient suivant dans le planning avec ETA calculé
+**When** 15 minutes avant l'heure estimée de visite
+**Then** une notification locale "Prochain patient dans 15 min" s'affiche sans nom ni adresse dans le corps (FR63)
+
+**Given** une synchronisation réussie après une période offline
+**When** toutes les mutations sont confirmées par le serveur
+**Then** une notification discrète "Vos données ont été synchronisées" s'affiche (FR64)
+
+---
+
+### Story 7.3 : Configuration des Notifications par l'Utilisateur
+
+En tant qu'utilisateur,
+Je veux activer ou désactiver chaque type de notification selon mes préférences,
+Afin de personnaliser mes alertes sans être submergé par des notifications non souhaitées.
+
+**Acceptance Criteria:**
+
+**Given** l'écran Paramètres > Notifications
+**When** je consulte la liste des types
+**Then** chaque type est affiché avec un `Switch` Paper : Nouveau patient / Urgence / Modification planning / Révocation / Rappel 15 min / Sync réussie / Récap matinal
+
+**Given** je désactive le type "Rappel 15 min"
+**When** la modification est enregistrée
+**Then** les rappels de 15 minutes ne s'affichent plus, les autres types restant actifs indépendamment
+
+**Given** l'app installée pour la première fois (iOS)
+**When** le système s'apprête à demander la permission notifications
+**Then** un écran de justification KURA s'affiche d'abord : "Recevez des alertes importantes pour votre tournée (nouveau patient, urgences, rappels)"
+**And** si la permission est refusée, l'app fonctionne normalement sans notifications push (fallback gracieux, FR67 toujours respecté)
+
+---
+
+## Epic 8 : Back Office Web d'Administration
+
+Les admins peuvent gérer toute leur structure depuis un navigateur desktop : liste complète des patients et IDEL, import CSV (500 patients < 30s), export CSV/PDF, tableau de bord statistiques d'utilisation, réassignation patients entre IDEL, et modification des plannings des collaborateurs.
+
+### Story 8.1 : Tableau de Bord & Accès Back Office
+
+En tant qu'admin,
+Je veux accéder à un tableau de bord centralisé depuis mon navigateur desktop avec les statistiques d'utilisation de ma structure,
+Afin d'avoir une vision globale de l'activité de mon équipe en un coup d'œil.
+
+**Acceptance Criteria:**
+
+**Given** l'URL du Back Office ouverte dans Chrome/Firefox/Safari (≥ 1024px)
+**When** je me connecte avec mon compte admin
+**Then** le tableau de bord s'affiche avec la navigation drawer latérale : Tableau de bord · Patients · IDELs · Paramètres
+
+**Given** le tableau de bord (FR73)
+**When** il se charge
+**Then** les statistiques visibles sont : nombre total patients actifs, IDELs actifs, transmissions saisies cette semaine, patients sans IDEL assigné
+
+**Given** un écran < 1024px de largeur
+**When** j'accède au Back Office
+**Then** le drawer se replie en mode hamburger et le contenu s'adapte
+**And** un message "Pour une expérience optimale, utilisez un écran desktop" s'affiche discrètement
+
+---
+
+### Story 8.2 : Gestion de la Liste des Patients (Back Office)
+
+En tant qu'admin,
+Je veux visualiser la liste complète de tous mes patients avec leurs IDEL assignés et modifier les attributions,
+Afin d'avoir une vue centralisée et réorganiser les tournées sans appeler chaque IDEL.
+
+**Acceptance Criteria:**
+
+**Given** la page Patients du Back Office
+**When** elle se charge
+**Then** tous les patients de ma structure s'affichent dans un tableau avec : nom, adresse, IDEL assigné, statut (actif/archivé), date dernière transmission
+
+**Given** la barre de recherche dans le tableau
+**When** je saisis au moins 2 caractères
+**Then** les résultats sont filtrés en temps réel par nom, adresse ou médecin traitant
+
+**Given** un patient sélectionné dans le tableau
+**When** je clique "Réassigner" et choisis un autre IDEL de ma structure (FR74)
+**Then** la réassignation est effective immédiatement, l'ancien IDEL perd l'accès, le nouveau reçoit une notification push
+
+**Given** un clic sur le nom d'un patient
+**When** sa fiche s'ouvre
+**Then** son historique de transmissions et ses constantes sont visibles en lecture complète admin
+
+---
+
+### Story 8.3 : Import & Export CSV des Patients
+
+En tant qu'admin,
+Je veux importer une liste de patients depuis un fichier CSV et exporter mes données en CSV ou PDF,
+Afin de configurer rapidement ma structure et exercer la portabilité RGPD de mes données.
+
+**Acceptance Criteria:**
+
+**Given** la page Patients > bouton "Importer CSV"
+**When** je dépose un fichier CSV (drag & drop ou sélecteur) avec colonnes : nom, prénom, adresse, téléphone, médecin_traitant
+**Then** jusqu'à 500 patients sont importés en moins de 30 secondes (NFR-INT-4)
+**And** un rapport d'import s'affiche : "450 importés, 3 erreurs (lignes 12, 87, 203)" avec erreurs explicites
+
+**Given** des lignes CSV invalides (colonnes manquantes ou format erroné)
+**When** l'import est traité
+**Then** les lignes valides sont importées et les lignes invalides sont listées avec l'erreur spécifique pour correction
+
+**Given** le bouton "Exporter" sur la page Patients (FR72)
+**When** je sélectionne CSV ou PDF
+**Then** le fichier est généré et téléchargé automatiquement avec toutes les données patients de ma structure
+
+---
+
+### Story 8.4 : Vue des IDEL & Modification des Plannings
+
+En tant qu'admin,
+Je veux visualiser tous mes IDEL collaborateurs avec leurs patients assignés et modifier leurs plannings depuis le Back Office,
+Afin de piloter mon équipe et réorganiser les tournées sans appeler chaque IDEL.
+
+**Acceptance Criteria:**
+
+**Given** la page IDELs du Back Office (FR70)
+**When** elle se charge
+**Then** chaque IDEL est listé avec : nom, statut (actif/invitation en attente), nombre de patients assignés, date dernière connexion
+
+**Given** un IDEL sélectionné
+**When** je clique sur son nom
+**Then** sa liste de patients assignés s'affiche avec son planning du jour en cours
+
+**Given** la vue planning d'un IDEL dans le Back Office (FR75)
+**When** j'ajoute, retire ou réorganise des patients dans son planning et enregistre
+**Then** les modifications sont synchronisées vers l'appareil mobile de l'IDEL
+**And** l'IDEL reçoit une notification push "Votre planning a été modifié par votre admin"
+
+---
+
+## Epic 9 : Conformité, Sécurité & Gouvernance des Données
+
+Toutes les données médicales sont gérées conformément au RGPD et aux exigences HDS : logs d'audit complets et immuables, export/suppression des données patient (droit à l'oubli, portabilité), chiffrement at-rest et in-transit, politique de session avec timeout, authentification forte FIDO2/WebAuthn et verrouillage anti-brute-force.
+
+### Story 9.1 : Journal d'Audit & Traçabilité Complète
+
+En tant qu'admin,
+Je veux accéder à un journal d'audit complet de toutes les actions sensibles effectuées sur les données patients,
+Afin de respecter les obligations légales HDS et prouver la traçabilité en cas de contrôle.
+
+**Acceptance Criteria:**
+
+**Given** une action sensible réalisée (création/modification/suppression patient, accès fiche patient, transmission créée, login réussi ou échoué, export CSV)
+**When** l'action est exécutée
+**Then** un log horodaté est écrit en base avec : user_id, action, ressource cible, adresse IP, timestamp UTC immuable (NFR-HDS-2)
+
+**Given** la page Audit Log du Back Office (FR78)
+**When** elle se charge
+**Then** les logs des 90 derniers jours sont visibles avec filtres : utilisateur, type d'action, période, ressource
+
+**Given** un log dans la liste
+**When** je clique dessus
+**Then** les détails complets s'affichent : contexte, avant/après pour les modifications, métadonnées de session
+
+---
+
+### Story 9.2 : Droits Patients — Export & Droit à l'Oubli (RGPD)
+
+En tant qu'admin,
+Je veux pouvoir exporter toutes les données d'un patient dans un format portable et les supprimer définitivement sur demande,
+Afin de respecter les droits RGPD des patients (portabilité et droit à l'oubli).
+
+**Acceptance Criteria:**
+
+**Given** la fiche d'un patient dans le Back Office
+**When** je clique "Exporter les données" (FR79, NFR-RGPD-2)
+**Then** un fichier ZIP est généré avec toutes ses données : informations personnelles, transmissions, constantes, plannings, au format JSON lisible
+
+**Given** une demande de suppression patient (droit à l'oubli, FR80)
+**When** je confirme la suppression avec double validation ("Supprimer définitivement" + saisie du nom patient)
+**Then** toutes ses données sont anonymisées ou supprimées en cascade (transmissions, plannings, constantes)
+**And** les logs d'audit sont conservés sous forme anonymisée (obligation légale HDS)
+**And** un email de confirmation de suppression est envoyé à l'admin
+
+**Given** le délai légal
+**When** une demande de suppression est reçue
+**Then** le système exécute l'anonymisation dans les 30 jours (configurable par l'admin)
+
+---
+
+### Story 9.3 : Chiffrement des Données & Sécurité Périmétrique
+
+En tant que système,
+Je veux que toutes les données médicales soient chiffrées au repos et en transit, avec des politiques de session sécurisées,
+Afin de protéger les données sensibles contre toute exfiltration ou accès non autorisé.
+
+**Acceptance Criteria:**
+
+**Given** toute donnée médicale stockée en base (PostgreSQL HDS)
+**When** elle est persistée
+**Then** elle est chiffrée at-rest via le mécanisme du serveur HDS certifié (NFR-SEC-2, NFR-HDS-1)
+
+**Given** toute communication client-serveur (mobile → API, Back Office → API)
+**When** une requête est émise
+**Then** elle transite exclusivement via HTTPS/TLS 1.3 (NFR-SEC-1)
+
+**Given** une session IDEL ou admin inactive depuis 30 minutes
+**When** le délai est atteint
+**Then** la session est automatiquement invalidée côté serveur, le token JWT est révoqué (NFR-SEC-4)
+**And** à la reconnexion, l'authentification complète (MFA inclus) est requise
+
+**Given** 5 tentatives de connexion échouées consécutives sur un compte
+**When** la 5ème tentative échoue
+**Then** le compte est temporairement verrouillé 15 minutes et l'admin reçoit un email d'alerte (NFR-SEC-5)
+
+---
+
+### Story 9.4 : Authentification FIDO2/WebAuthn & MFA Biométrique
+
+En tant qu'IDEL ou admin,
+Je veux pouvoir m'authentifier avec ma clé biométrique (Face ID / empreinte) comme second facteur certifié FIDO2,
+Afin d'avoir une authentification forte qui respecte les exigences HDS sans friction d'usage.
+
+**Acceptance Criteria:**
+
+**Given** un premier login réussi avec email + mot de passe + TOTP (MFA initial, FR1–FR3)
+**When** je choisis "Activer Face ID / Touch ID comme second facteur"
+**Then** la clé FIDO2/WebAuthn est enregistrée sur l'appareil via Expo SecureStore (NFR-SEC-3)
+
+**Given** la clé FIDO2 enregistrée
+**When** je me reconnecte ultérieurement
+**Then** l'authentification biométrique remplace le TOTP comme second facteur (email + password + biométrie)
+
+**Given** l'app désinstallée ou l'appareil changé
+**When** je me reconnecte depuis un nouvel appareil
+**Then** la clé FIDO2 de l'ancien appareil est invalidée et je dois re-enregistrer la biométrie
+
+**Given** une erreur biométrique répétée (3 tentatives Face ID échouées)
+**When** la 3ème tentative échoue
+**Then** le fallback revient automatiquement au TOTP comme second facteur
