@@ -44,7 +44,7 @@ development_status:
   # Epic 1 : Fondations & Authentification Sécurisée
   # ─────────────────────────────────────────────────────────────────────────────
   epic-1: in-progress
-  1-1-initialisation-du-monorepo-socle-technique: in-progress
+  1-1-initialisation-du-monorepo-socle-technique: review
   1-2-creation-de-compte-utilisateur-avec-mfa: backlog
   1-3-connexion-securisee-avec-email-mfa: backlog
   1-4-authentification-biometrique-face-id-touch-id: backlog
