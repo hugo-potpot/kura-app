@@ -77,22 +77,22 @@ describe('useAuth', () => {
       expect(auth.isJwtExpired(EXPIRED_TOKEN)).toBe(true);
     });
 
-    it('should return true for a token with no exp claim', () => {
+    it('should return false for a token with no exp claim (opaque/BetterAuth token)', () => {
       const auth = useAuth();
       const header = Buffer.from(JSON.stringify({ alg: 'HS256' })).toString('base64url');
       const payload = Buffer.from(JSON.stringify({ sub: 'user123' })).toString('base64url');
       const tokenNoExp = `${header}.${payload}.sig`;
-      expect(auth.isJwtExpired(tokenNoExp)).toBe(true);
+      expect(auth.isJwtExpired(tokenNoExp)).toBe(false);
     });
 
-    it('should return true for a malformed token', () => {
+    it('should return false for an opaque token (non-JWT BetterAuth session)', () => {
       const auth = useAuth();
-      expect(auth.isJwtExpired('not-a-jwt')).toBe(true);
+      expect(auth.isJwtExpired('opaque-session-token-abc123')).toBe(false);
     });
 
-    it('should return true for an empty string', () => {
+    it('should return false for an empty string (cannot determine expiry)', () => {
       const auth = useAuth();
-      expect(auth.isJwtExpired('')).toBe(true);
+      expect(auth.isJwtExpired('')).toBe(false);
     });
   });
 

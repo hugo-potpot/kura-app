@@ -45,18 +45,22 @@ export function useAuth(): {
   const isJwtExpired = (token: string): boolean => {
     try {
       const parts = token.split('.');
-      if (parts.length !== 3 || !parts[1]) return true;
+      // Token opaque (BetterAuth session token) ou malformé → on ne peut pas déterminer l'expiration
+      // Traiter comme valide : le serveur gérera l'invalidation au prochain appel API
+      if (parts.length !== 3 || !parts[1]) return false;
 
       const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
       const json = atob(base64);
       const payload = JSON.parse(json) as { exp?: number };
 
-      if (typeof payload.exp !== 'number') return true;
+      // Pas de claim exp → token sans expiration explicite → traiter comme valide
+      if (typeof payload.exp !== 'number') return false;
 
       const nowInSeconds = Math.floor(Date.now() / 1000);
       return payload.exp < nowInSeconds;
     } catch {
-      return true;
+      // Erreur de décodage → token non-JWT → traiter comme valide
+      return false;
     }
   };
 
