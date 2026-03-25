@@ -44,12 +44,12 @@ development_status:
   # Epic 1 : Fondations & Authentification Sécurisée
   # ─────────────────────────────────────────────────────────────────────────────
   epic-1: in-progress
-  1-1-initialisation-du-monorepo-socle-technique: review
-  1-2-creation-de-compte-utilisateur-avec-mfa: backlog
-  1-3-connexion-securisee-avec-email-mfa: backlog
-  1-4-authentification-biometrique-face-id-touch-id: backlog
-  1-5-authentification-offline-avec-jwt-local: backlog
-  1-6-reinitialisation-de-mot-de-passe: backlog
+  1-1-initialisation-du-monorepo-socle-technique: done
+  1-2-creation-de-compte-utilisateur-avec-mfa: review
+  1-3-connexion-securisee-avec-email-mfa: review
+  1-4-authentification-biometrique-face-id-touch-id: review
+  1-5-authentification-offline-avec-jwt-local: review
+  1-6-reinitialisation-de-mot-de-passe: ready-for-dev
   1-7-gestion-securite-deconnexion-revocation-appareil: backlog
   epic-1-retrospective: optional
 

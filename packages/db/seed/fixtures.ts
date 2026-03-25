@@ -3,7 +3,7 @@ import postgres from 'postgres';
 import { generateId } from '@kura/shared';
 import {
   structuresPg,
-  usersPg,
+  authUser,
   patientsPg,
 } from '../schema';
 
@@ -23,24 +23,30 @@ const STRUCTURE_ID = generateId();
 const IDELS_FIXTURES = [
   {
     id: generateId(),
-    structureId: STRUCTURE_ID,
+    name: 'Marie Infirmière',
     email: 'marie.infirmiere@kura-test.fr',
+    emailVerified: true,
+    structureId: STRUCTURE_ID,
     role: 'idel' as const,
     createdAt: now,
     updatedAt: now,
   },
   {
     id: generateId(),
-    structureId: STRUCTURE_ID,
+    name: 'Jean Infirmier',
     email: 'jean.infirmier@kura-test.fr',
+    emailVerified: true,
+    structureId: STRUCTURE_ID,
     role: 'idel' as const,
     createdAt: now,
     updatedAt: now,
   },
   {
     id: generateId(),
-    structureId: STRUCTURE_ID,
+    name: 'Sophie Infirmière',
     email: 'sophie.infirmiere@kura-test.fr',
+    emailVerified: true,
+    structureId: STRUCTURE_ID,
     role: 'idel' as const,
     createdAt: now,
     updatedAt: now,
@@ -213,7 +219,7 @@ async function seed() {
   }).onConflictDoNothing();
 
   console.log('👩‍⚕️ Insertion des 3 IDELs...');
-  await db.insert(usersPg).values(IDELS_FIXTURES).onConflictDoNothing();
+  await db.insert(authUser).values(IDELS_FIXTURES).onConflictDoNothing();
 
   console.log('🏥 Insertion des 10 patients...');
   await db.insert(patientsPg).values(PATIENTS_FIXTURES).onConflictDoNothing();

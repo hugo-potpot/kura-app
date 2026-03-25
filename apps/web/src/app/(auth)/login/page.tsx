@@ -5,7 +5,7 @@ export default function LoginPage() {
         <h1 className="text-3xl font-bold text-center text-teal-700">KURA</h1>
         <p className="text-center text-gray-500">Back Office Administration</p>
         <p className="text-center text-sm text-gray-400">
-          Connexion — à implémenter (Story 1.2 + BetterAuth)
+          Connexion — à implémenter (Story 1.3 + BetterAuth)
         </p>
       </div>
     </div>

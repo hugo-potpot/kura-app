@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "58caa8dc-9101-4d4a-b621-67fb846ad05f"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.hugopot.kuraapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}
