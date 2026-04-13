@@ -9,6 +9,17 @@ interface ApiError {
   message?: string;
 }
 
+// Global 401 handler — registered by _layout.tsx to handle session revocation
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: () => void): void {
+  unauthorizedHandler = handler;
+}
+
+function handleUnauthorized(): void {
+  unauthorizedHandler?.();
+}
+
 async function post<T>(path: string, body: unknown, headers?: Record<string, string>): Promise<ApiResponse<T>> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
@@ -18,6 +29,10 @@ async function post<T>(path: string, body: unknown, headers?: Record<string, str
     },
     body: JSON.stringify(body),
   });
+
+  if (response.status === 401) {
+    handleUnauthorized();
+  }
 
   if (!response.ok) {
     const error: ApiError = { response: { status: response.status } };
@@ -36,6 +51,10 @@ async function get<T>(path: string, headers?: Record<string, string>): Promise<A
       ...headers,
     },
   });
+
+  if (response.status === 401) {
+    handleUnauthorized();
+  }
 
   if (!response.ok) {
     const error: ApiError = { response: { status: response.status } };

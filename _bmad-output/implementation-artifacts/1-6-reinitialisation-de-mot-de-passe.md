@@ -1,6 +1,6 @@
 # Story 1.6 : Réinitialisation de Mot de Passe
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -30,59 +30,59 @@ Afin de récupérer l'accès à mon compte sans assistance technique.
 
 ## Tasks / Subtasks
 
-- [ ] **T1 — Créer le hook `useForgotPassword`** (AC: 1)
-  - [ ] T1.1 — Créer `apps/mobile/src/features/auth/hooks/useForgotPassword.ts`
-  - [ ] T1.2 — `requestReset(email: string): Promise<void>` → `POST /api/auth/forgot-password` avec `{ email, redirectTo: RESET_PASSWORD_URL }`
-  - [ ] T1.3 — `RESET_PASSWORD_URL` = `process.env['EXPO_PUBLIC_API_URL'] + '/reset-password'` (page Next.js)
-  - [ ] T1.4 — Gérer les erreurs réseau — NE PAS lever d'erreur visible si email inexistant (anti-énumération : toujours afficher le même message de succès)
-  - [ ] T1.5 — `isLoading: boolean`, `error: string | null` en state local
-  - [ ] T1.6 — Créer `apps/mobile/src/features/auth/hooks/useForgotPassword.test.ts`
+- [x] **T1 — Créer le hook `useForgotPassword`** (AC: 1)
+  - [x] T1.1 — Créer `apps/mobile/src/features/auth/hooks/useForgotPassword.ts`
+  - [x] T1.2 — `requestReset(email: string): Promise<void>` → `POST /api/auth/forgot-password` avec `{ email, redirectTo: RESET_PASSWORD_URL }`
+  - [x] T1.3 — `RESET_PASSWORD_URL` = `process.env['EXPO_PUBLIC_API_URL'] + '/reset-password'` (page Next.js)
+  - [x] T1.4 — Gérer les erreurs réseau — NE PAS lever d'erreur visible si email inexistant (anti-énumération : toujours afficher le même message de succès)
+  - [x] T1.5 — `isLoading: boolean`, `error: string | null` en state local
+  - [x] T1.6 — Créer `apps/mobile/src/features/auth/hooks/useForgotPassword.test.ts`
     - Test succès (200) → résolu sans erreur
     - Test email inexistant (BetterAuth retourne 200 quand même) → même comportement
     - Test erreur réseau → `error` positionné
 
-- [ ] **T2 — Créer l'écran `(auth)/forgot-password.tsx`** (AC: 1)
-  - [ ] T2.1 — Créer `apps/mobile/src/app/(auth)/forgot-password.tsx`
-  - [ ] T2.2 — `SafeAreaView` + `KeyboardAvoidingView` + `ScrollView` (pattern identique à `login.tsx`)
-  - [ ] T2.3 — Champ email avec `react-hook-form` + `zodResolver` (schéma : email valide requis)
-  - [ ] T2.4 — Schéma Zod dans `apps/mobile/src/features/auth/schemas/forgot-password-schema.ts`
-  - [ ] T2.5 — Bouton "Envoyer le lien" → `useForgotPassword().requestReset(email)` → `router.replace('/(auth)/forgot-password-confirmation')`
-  - [ ] T2.6 — Bouton "Retour à la connexion" → `router.back()` (lien texte, mode "text")
-  - [ ] T2.7 — `accessibilityLabel` sur tous les éléments interactifs, `minHeight: 48` sur les boutons
-  - [ ] T2.8 — `export default` (obligatoire Expo Router)
+- [x] **T2 — Créer l'écran `(auth)/forgot-password.tsx`** (AC: 1)
+  - [x] T2.1 — Créer `apps/mobile/src/app/(auth)/forgot-password.tsx`
+  - [x] T2.2 — `SafeAreaView` + `KeyboardAvoidingView` + `ScrollView` (pattern identique à `login.tsx`)
+  - [x] T2.3 — Champ email avec `react-hook-form` + `zodResolver` (schéma : email valide requis)
+  - [x] T2.4 — Schéma Zod dans `apps/mobile/src/features/auth/schemas/forgot-password-schema.ts`
+  - [x] T2.5 — Bouton "Envoyer le lien" → `useForgotPassword().requestReset(email)` → `router.replace('/(auth)/forgot-password-confirmation')`
+  - [x] T2.6 — Bouton "Retour à la connexion" → `router.back()` (lien texte, mode "text")
+  - [x] T2.7 — `accessibilityLabel` sur tous les éléments interactifs, `minHeight: 48` sur les boutons
+  - [x] T2.8 — `export default` (obligatoire Expo Router)
 
-- [ ] **T3 — Créer l'écran `(auth)/forgot-password-confirmation.tsx`** (AC: 1)
-  - [ ] T3.1 — Créer `apps/mobile/src/app/(auth)/forgot-password-confirmation.tsx`
-  - [ ] T3.2 — Afficher le message : "Si cet email est enregistré, un lien de réinitialisation vous a été envoyé. Vérifiez votre boîte mail."
-  - [ ] T3.3 — Bouton "Retour à la connexion" → `router.replace('/(auth)/login')`
-  - [ ] T3.4 — `SafeAreaView` + `accessibilityRole="alert"` sur le message
-  - [ ] T3.5 — `export default` (obligatoire Expo Router)
+- [x] **T3 — Créer l'écran `(auth)/forgot-password-confirmation.tsx`** (AC: 1)
+  - [x] T3.1 — Créer `apps/mobile/src/app/(auth)/forgot-password-confirmation.tsx`
+  - [x] T3.2 — Afficher le message : "Si cet email est enregistré, un lien de réinitialisation vous a été envoyé. Vérifiez votre boîte mail."
+  - [x] T3.3 — Bouton "Retour à la connexion" → `router.replace('/(auth)/login')`
+  - [x] T3.4 — `SafeAreaView` + `accessibilityRole="alert"` sur le message
+  - [x] T3.5 — `export default` (obligatoire Expo Router)
 
-- [ ] **T4 — Modifier `(auth)/login.tsx` pour ajouter le lien "Mot de passe oublié"** (AC: 1)
-  - [ ] T4.1 — Lire `apps/mobile/src/app/(auth)/login.tsx` EN ENTIER avant toute modification
-  - [ ] T4.2 — Ajouter un `Button` mode="text" entre le bouton "Se connecter" et "Créer un compte"
+- [x] **T4 — Modifier `(auth)/login.tsx` pour ajouter le lien "Mot de passe oublié"** (AC: 1)
+  - [x] T4.1 — Lire `apps/mobile/src/app/(auth)/login.tsx` EN ENTIER avant toute modification
+  - [x] T4.2 — Ajouter un `Button` mode="text" entre le bouton "Se connecter" et "Créer un compte"
     ```
     Label : "Mot de passe oublié ?"
     onPress : router.push('/(auth)/forgot-password')
     accessibilityLabel : "Réinitialiser mon mot de passe"
     contentStyle : styles.buttonContent (minHeight: 48 — déjà dans styles)
     ```
-  - [ ] T4.3 — Ne pas modifier le reste du fichier (logique login, styles existants)
+  - [x] T4.3 — Ne pas modifier le reste du fichier (logique login, styles existants)
 
-- [ ] **T5 — Créer la page web `/reset-password`** (AC: 2, 3)
-  - [ ] T5.1 — Créer `apps/web/src/app/(auth)/reset-password/page.tsx`
-  - [ ] T5.2 — Lire le token depuis `searchParams.token` (Next.js App Router : `{ searchParams: Promise<{ token?: string }> }`)
-  - [ ] T5.3 — Si token absent → afficher "Lien invalide" + bouton "Demander un nouveau lien" → `/login`
-  - [ ] T5.4 — Formulaire avec champ "Nouveau mot de passe" (≥ 12 caractères, règles identiques BetterAuth)
-  - [ ] T5.5 — Champ "Confirmer le mot de passe" (validation cross-field Zod : `refine`)
-  - [ ] T5.6 — Soumission → `POST /api/auth/reset-password` avec `{ newPassword, token }`
-  - [ ] T5.7 — Succès → afficher "Mot de passe mis à jour — vous pouvez vous reconnecter" + lien `/login`
-  - [ ] T5.8 — Erreur 400/410 (token expiré/invalide) → afficher "Lien expiré, veuillez en demander un nouveau" + bouton "Renvoyer un lien" [AC3]
-  - [ ] T5.9 — `'use client'` obligatoire (formulaire avec état)
+- [x] **T5 — Créer la page web `/reset-password`** (AC: 2, 3)
+  - [x] T5.1 — Créer `apps/web/src/app/(auth)/reset-password/page.tsx`
+  - [x] T5.2 — Lire le token depuis `searchParams.token` (Next.js App Router : utilisation de `useSearchParams()` dans Client Component)
+  - [x] T5.3 — Si token absent → afficher "Lien invalide" + bouton "Demander un nouveau lien" → `/login`
+  - [x] T5.4 — Formulaire avec champ "Nouveau mot de passe" (≥ 12 caractères, règles identiques BetterAuth)
+  - [x] T5.5 — Champ "Confirmer le mot de passe" (validation cross-field Zod : `refine`)
+  - [x] T5.6 — Soumission → `POST /api/auth/reset-password` avec `{ newPassword, token }`
+  - [x] T5.7 — Succès → afficher "Mot de passe mis à jour — vous pouvez vous reconnecter" + lien `/login`
+  - [x] T5.8 — Erreur 400/410 (token expiré/invalide) → afficher "Lien expiré, veuillez en demander un nouveau" + bouton "Renvoyer un lien" [AC3]
+  - [x] T5.9 — `'use client'` obligatoire (formulaire avec état)
 
-- [ ] **T6 — Vérifier que le layout `(auth)` web existe pour la page reset-password** (AC: 2, 3)
-  - [ ] T6.1 — Vérifier si `apps/web/src/app/(auth)/` existe. Si non, créer `apps/web/src/app/(auth)/layout.tsx` minimal (juste `export default function Layout({ children }) { return <>{children}</> }`)
-  - [ ] T6.2 — Si le dossier existe déjà, ne rien faire
+- [x] **T6 — Vérifier que le layout `(auth)` web existe pour la page reset-password** (AC: 2, 3)
+  - [x] T6.1 — Vérifier si `apps/web/src/app/(auth)/` existe. Si non, créer `apps/web/src/app/(auth)/layout.tsx` minimal (juste `export default function Layout({ children }) { return <>{children}</> }`)
+  - [x] T6.2 — Si le dossier existe déjà, ne rien faire
 
 ## Dev Notes
 
@@ -284,6 +284,33 @@ claude-sonnet-4-6
 
 ### Debug Log References
 
+_Aucun blocage rencontré._
+
 ### Completion Notes List
 
+- ✅ Hook `useForgotPassword` implémenté avec anti-énumération : erreur affichée uniquement sur erreur réseau réelle, jamais sur email inexistant (BetterAuth retourne 200 dans tous les cas).
+- ✅ 4 tests unitaires passent (succès, anti-énumération, erreur réseau, isLoading).
+- ✅ Écran `forgot-password.tsx` avec `react-hook-form` + Zod, pattern identique à `login.tsx`.
+- ✅ Écran `forgot-password-confirmation.tsx` avec `accessibilityRole="alert"` sur le message.
+- ✅ `login.tsx` modifié minimalement : ajout du bouton "Mot de passe oublié ?" entre "Se connecter" et "Créer un compte".
+- ✅ Page web `reset-password/page.tsx` créée en `'use client'` avec `useSearchParams()` (Next.js 15 pattern correct).
+- ✅ Layout `(auth)/layout.tsx` créé car inexistant.
+- ✅ Fichier de types Expo Router `.expo/types/router.d.ts` mis à jour avec les nouvelles routes (sera régénéré automatiquement au prochain démarrage du serveur Expo).
+- ⚠️ **BetterAuth email provider** : si non configuré dans `apps/web/src/lib/auth.ts`, les emails ne seront pas envoyés. Vérifier et configurer un provider (Resend, Nodemailer/Ethereal) avant les tests d'intégration.
+- ⚠️ **Durée token reset** : BetterAuth gère la durée (par défaut 1h). Si l'exigence métier de 15 minutes doit être respectée, configurer dans `auth.ts` via l'option `expiresIn` de `emailAndPassword`.
+
 ### File List
+
+- `apps/mobile/src/features/auth/hooks/useForgotPassword.ts` — CRÉÉ
+- `apps/mobile/src/features/auth/hooks/useForgotPassword.test.ts` — CRÉÉ
+- `apps/mobile/src/features/auth/schemas/forgot-password-schema.ts` — CRÉÉ
+- `apps/mobile/src/app/(auth)/forgot-password.tsx` — CRÉÉ
+- `apps/mobile/src/app/(auth)/forgot-password-confirmation.tsx` — CRÉÉ
+- `apps/mobile/src/app/(auth)/login.tsx` — MODIFIÉ (ajout bouton "Mot de passe oublié ?")
+- `apps/web/src/app/(auth)/layout.tsx` — CRÉÉ
+- `apps/web/src/app/(auth)/reset-password/page.tsx` — CRÉÉ
+- `apps/mobile/.expo/types/router.d.ts` — MODIFIÉ (ajout routes forgot-password)
+
+## Change Log
+
+- 2026-03-27 : Implémentation complète story 1.6 — Réinitialisation de mot de passe. 8 fichiers créés/modifiés : hook useForgotPassword + tests (4 tests), schéma Zod, 2 écrans mobiles (forgot-password, forgot-password-confirmation), modification login.tsx, layout web (auth), page web reset-password.

@@ -49,19 +49,19 @@ development_status:
   1-3-connexion-securisee-avec-email-mfa: review
   1-4-authentification-biometrique-face-id-touch-id: review
   1-5-authentification-offline-avec-jwt-local: review
-  1-6-reinitialisation-de-mot-de-passe: ready-for-dev
-  1-7-gestion-securite-deconnexion-revocation-appareil: backlog
+  1-6-reinitialisation-de-mot-de-passe: review
+  1-7-gestion-securite-deconnexion-revocation-appareil: review
   epic-1-retrospective: optional
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Epic 2 : Gestion de la Structure & des Utilisateurs
   # ─────────────────────────────────────────────────────────────────────────────
-  epic-2: backlog
-  2-1-creation-de-la-structure-professionnelle-onboarding-admin: backlog
-  2-2-invitation-des-idel-collaborateurs: backlog
-  2-3-invitation-des-medecins-prescripteurs: backlog
-  2-4-gestion-des-roles-permissions-desactivation-de-compte: backlog
-  2-5-consultation-de-lequipe-gestion-du-profil-utilisateur: backlog
+  epic-2: in-progress
+  2-1-creation-de-la-structure-professionnelle-onboarding-admin: review
+  2-2-invitation-des-idel-collaborateurs: review
+  2-3-invitation-des-medecins-prescripteurs: review
+  2-4-gestion-des-roles-permissions-desactivation-de-compte: review
+  2-5-consultation-de-lequipe-gestion-du-profil-utilisateur: review
   epic-2-retrospective: optional
 
   # ─────────────────────────────────────────────────────────────────────────────

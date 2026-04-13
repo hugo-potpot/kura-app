@@ -32,12 +32,31 @@ export const auth = betterAuth({
         defaultValue: 'idel',
         input: true,
       },
+      disabled: {
+        type: 'boolean',
+        required: false,
+        defaultValue: false,
+        input: false, // géré uniquement côté serveur (admin), pas via l'API publique BetterAuth
+      },
     },
   },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
     minPasswordLength: 12,
+    // Requis pour activer POST /api/auth/forgot-password
+    // En production : remplacer par Resend ou Nodemailer
+    sendResetPassword: async ({ user, url }) => {
+      if (process.env['NODE_ENV'] === 'production') {
+        // TODO: brancher Resend — RESEND_API_KEY dans .env
+        // import { Resend } from 'resend';
+        // await new Resend(process.env['RESEND_API_KEY']).emails.send({ ... });
+        console.error('[auth] sendResetPassword non configuré en production');
+        return;
+      }
+      // Dev : afficher le lien dans la console serveur Next.js
+      console.log(`[DEV] Lien de réinitialisation pour ${user.email} :\n${url}`);
+    },
   },
   session: {
     expiresIn: 60 * 60 * 24 * 7,

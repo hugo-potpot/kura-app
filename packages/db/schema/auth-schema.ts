@@ -16,6 +16,7 @@ export const authUser = pgTable('user', {
   // Champs métier KURA
   structureId: text('structure_id'),
   role: text('role', { enum: ['admin', 'idel', 'doctor'] }),
+  disabled: boolean('disabled').default(false), // story 2.4 — désactivation de compte
 });
 
 export const authSession = pgTable('session', {

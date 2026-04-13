@@ -10,7 +10,7 @@ export { auditLogs } from './audit-schema';
 // ── PostgreSQL schemas (serveur / Next.js) ──────────────────────────────────
 // La table user PostgreSQL est dans auth-schema (gérée par BetterAuth + champs métier KURA)
 export { authUser, authSession, authAccount, authVerification, authTwoFactor } from './auth-schema';
-export { structuresPg } from './structure-schema';
+export { structuresPg, invitationsPg } from './structure-schema';
 export { patientsPg } from './patient-schema';
 export { transmissionsPg } from './transmission-schema';
 export { planningEntriesPg } from './planning-schema';
