@@ -18,6 +18,13 @@ export default function LoginPage(): React.JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') ?? '/dashboard';
+  const errorParam = searchParams.get('error');
+
+  const SESSION_ERRORS: Record<string, string> = {
+    session_expired: 'Votre session a expiré. Veuillez vous reconnecter.',
+    account_disabled: 'Votre compte a été désactivé. Contactez votre administrateur.',
+  };
+  const sessionError = errorParam ? (SESSION_ERRORS[errorParam] ?? null) : null;
 
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,7 +50,11 @@ export default function LoginPage(): React.JSX.Element {
     setIsSubmitting(false);
 
     if (error) {
-      setApiError('Email ou mot de passe incorrect.');
+      if (!error.status) {
+        setApiError('Impossible de se connecter au serveur. Vérifiez votre connexion internet.');
+      } else {
+        setApiError('Email ou mot de passe incorrect.');
+      }
       return;
     }
 
@@ -58,6 +69,12 @@ export default function LoginPage(): React.JSX.Element {
           <h1 className="text-3xl font-bold text-teal-700">KURA</h1>
           <p className="text-gray-500 text-sm mt-1">Back Office Administration</p>
         </div>
+
+        {sessionError && (
+          <p role="alert" className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-center">
+            {sessionError}
+          </p>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>

@@ -54,7 +54,7 @@ export function useRegister(): UseRegisterResult {
       const { data: enableData } = await apiClient.post<EnableTwoFactorResponse>(
         '/api/auth/two-factor/enable',
         { password: data.password },
-        { Authorization: `Bearer ${token}` },
+        { headers: { Authorization: `Bearer ${token}` }, skipUnauthorizedHandler: true },
       );
 
       return { totpUri: enableData.totpURI };

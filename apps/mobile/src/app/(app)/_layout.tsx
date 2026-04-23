@@ -1,23 +1,20 @@
 import { useEffect, useRef } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
-import { useTheme } from 'react-native-paper';
 
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useBiometric } from '@/features/auth/hooks/useBiometric';
 import { getIsOnline } from '@/lib/useNetworkStatus';
 import { setUnauthorizedHandler } from '@/lib/api-client';
+import { BottomTabBar } from '@/components/BottomTabBar';
+import { COLORS } from '@/theme/kura-theme';
 
 const MAX_BIOMETRIC_FAILURES = 2;
-const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
 
 export default function AppLayout(): React.JSX.Element {
-  const theme = useTheme();
   const router = useRouter();
   const { getToken, isJwtExpired, refreshJwt, clearSession } = useAuth();
   const { isEnabled, authenticate } = useBiometric();
   const biometricFailsRef = useRef(0);
-  const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Détection révocation session via 401 (AC2 story 1.7)
   useEffect(() => {
@@ -29,33 +26,6 @@ export default function AppLayout(): React.JSX.Element {
     });
   }, [clearSession, router]);
 
-  // Timeout d'inactivité 15 min (AC3 story 1.7)
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus): void => {
-      if (nextAppState === 'background' || nextAppState === 'inactive') {
-        inactivityTimerRef.current = setTimeout(() => {
-          void (async () => {
-            await clearSession();
-            router.replace('/(auth)/session-expired');
-          })();
-        }, INACTIVITY_TIMEOUT_MS);
-      } else if (nextAppState === 'active') {
-        if (inactivityTimerRef.current) {
-          clearTimeout(inactivityTimerRef.current);
-          inactivityTimerRef.current = null;
-        }
-      }
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => {
-      subscription.remove();
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-      }
-    };
-  }, [clearSession, router]);
-
   useEffect(() => {
     void (async () => {
       const token = await getToken();
@@ -64,22 +34,22 @@ export default function AppLayout(): React.JSX.Element {
         return;
       }
 
-      // AC1/AC2/AC3 story 1.5 : JWT expiry check + offline refresh
-      if (isJwtExpired(token)) {
-        const online = await getIsOnline();
-        if (online) {
-          const refreshed = await refreshJwt();
-          if (!refreshed) {
-            router.replace('/(auth)/session-expired');
-            return;
-          }
-        } else {
-          router.replace('/(auth)/session-expired');
-          return;
-        }
+      // Vérification token expiré offline
+      const online = await getIsOnline();
+      if (!online && isJwtExpired(token)) {
+        router.replace('/(auth)/session-expired');
+        return;
       }
 
-      // AC2/AC3 story 1.4 : biometric prompt on cold start
+      // Validation côté serveur — si le refresh échoue pour révocation réelle (401), c'est
+      // l'unauthorizedHandler qui gère. Ici on ne clear pas pour une erreur réseau transitoire.
+      if (online) {
+        await refreshJwt();
+        // Ne pas invalider : si refreshJwt échoue (réseau), on continue avec le token existant.
+        // La révocation réelle est gérée par le 401 de l'API (unauthorizedHandler).
+      }
+
+      // Biométrie au démarrage (AC2/AC3 story 1.4)
       const biometricEnabled = await isEnabled();
       if (!biometricEnabled) return;
 
@@ -89,7 +59,6 @@ export default function AppLayout(): React.JSX.Element {
         return;
       }
 
-      // user_cancel ne compte pas comme un échec
       biometricFailsRef.current += 1;
       if (biometricFailsRef.current >= MAX_BIOMETRIC_FAILURES) {
         biometricFailsRef.current = 0;
@@ -100,50 +69,29 @@ export default function AppLayout(): React.JSX.Element {
 
   return (
     <Tabs
+      tabBar={(props) => <BottomTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-        tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.surfaceVariant,
-        },
-        headerStyle: {
-          backgroundColor: theme.colors.primary,
-        },
-        headerTintColor: '#FFFFFF',
-        tabBarLabelStyle: {
-          fontSize: 11,
-        },
+        headerShown: false,
       }}
     >
       <Tabs.Screen
         name="planning/index"
-        options={{
-          title: 'Planning',
-          tabBarLabel: 'Planning',
-        }}
+        options={{ title: 'Planning' }}
       />
       <Tabs.Screen
         name="patients/index"
-        options={{
-          title: 'Patients',
-          tabBarLabel: 'Patients',
-        }}
+        options={{ title: 'Patients' }}
       />
       <Tabs.Screen
         name="transmissions/index"
-        options={{
-          title: 'Transmissions',
-          tabBarLabel: 'Transmissions',
-        }}
+        options={{ title: 'Transmissions' }}
       />
       <Tabs.Screen
         name="profile/index"
-        options={{
-          title: 'Profil',
-          tabBarLabel: 'Profil',
-        }}
+        options={{ title: 'Profil' }}
       />
+      <Tabs.Screen name="patients/new" options={{ href: null }} />
+      <Tabs.Screen name="patients/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

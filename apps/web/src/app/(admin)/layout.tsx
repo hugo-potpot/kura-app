@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
-import { LayoutDashboard, Users, Stethoscope, Building2, Settings, LogOut, UserCircle } from 'lucide-react';
+import { LayoutDashboard, Users, Stethoscope, Building2, Settings, UserCircle } from 'lucide-react';
 import { auth } from '@/lib/auth';
+import { SignOutButton } from '@/components/sign-out-button';
 
 interface NavItem {
   href: string;
@@ -14,6 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
   { href: '/patients', label: 'Patients', icon: Users },
   { href: '/idels', label: 'Infirmiers', icon: Stethoscope, doctorHidden: true },
+  { href: '/structure', label: 'Structure', icon: Building2, doctorHidden: true },
   { href: '/profile', label: 'Profil', icon: UserCircle },
   { href: '/settings', label: 'Paramètres', icon: Settings, doctorHidden: true },
 ];
@@ -68,14 +70,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               <p className="text-white/50 text-xs truncate">{userRole}</p>
             </div>
           </div>
-          <a
-            href="/api/auth/sign-out"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors text-sm font-medium"
-            aria-label="Se déconnecter"
-          >
-            <LogOut className="w-4 h-4" />
-            Déconnexion
-          </a>
+          <SignOutButton />
         </div>
       </aside>
 

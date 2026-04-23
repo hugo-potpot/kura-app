@@ -71,7 +71,7 @@ export function useAuth(): {
     try {
       const response = await apiClient.post<RefreshResponse>('/api/v1/auth/refresh-token', {
         refreshToken,
-      });
+      }, { skipUnauthorizedHandler: true });
       await saveSession({ token: response.data.token, refreshToken: response.data.refreshToken });
       return true;
     } catch {

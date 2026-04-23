@@ -10,6 +10,7 @@ export interface Patient {
   longitude: number | null;
   phone: string | null;
   treatingDoctor: string | null;
+  assignedIdelId: string | null;
   status: PatientStatus;
   createdAt: Date;
   updatedAt: Date;

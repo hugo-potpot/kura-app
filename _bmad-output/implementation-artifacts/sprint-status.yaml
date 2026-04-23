@@ -67,12 +67,12 @@ development_status:
   # ─────────────────────────────────────────────────────────────────────────────
   # Epic 3 : Gestion des Patients
   # ─────────────────────────────────────────────────────────────────────────────
-  epic-3: backlog
-  3-1-creation-dun-dossier-patient-avec-geolocalisation: backlog
-  3-2-consultation-modification-de-la-fiche-patient: backlog
-  3-3-attribution-des-patients-aux-idel-isolation-multi-tenant: backlog
-  3-4-recherche-filtrage-liste-des-patients: backlog
-  3-5-archivage-suppression-conformite-rgpd: backlog
+  epic-3: in-progress
+  3-1-creation-dun-dossier-patient-avec-geolocalisation: review
+  3-2-consultation-modification-de-la-fiche-patient: review
+  3-3-attribution-des-patients-aux-idel-isolation-multi-tenant: review
+  3-4-recherche-filtrage-liste-des-patients: review
+  3-5-archivage-suppression-conformite-rgpd: review
   3-6-visualisation-des-constantes-graphiques-patient: backlog
   epic-3-retrospective: optional
 

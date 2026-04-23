@@ -1,6 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { twoFactor } from 'better-auth/plugins/two-factor';
+import { bearer } from 'better-auth/plugins/bearer';
 import { db } from './db';
 import { authUser, authSession, authAccount, authVerification, authTwoFactor } from '@kura/db';
 
@@ -63,6 +64,7 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24,
   },
   plugins: [
+    bearer(),
     twoFactor({
       issuer: 'KURA',
       totpOptions: { digits: 6, period: 30 },

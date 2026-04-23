@@ -1,4 +1,7 @@
+import * as SecureStore from 'expo-secure-store';
+
 const API_BASE_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+const JWT_KEY = 'kura_jwt';
 
 interface ApiResponse<T> {
   data: T;
@@ -9,7 +12,6 @@ interface ApiError {
   message?: string;
 }
 
-// Global 401 handler — registered by _layout.tsx to handle session revocation
 let unauthorizedHandler: (() => void) | null = null;
 
 export function setUnauthorizedHandler(handler: () => void): void {
@@ -20,17 +22,29 @@ function handleUnauthorized(): void {
   unauthorizedHandler?.();
 }
 
-async function post<T>(path: string, body: unknown, headers?: Record<string, string>): Promise<ApiResponse<T>> {
+async function authHeaders(extra?: Record<string, string>): Promise<Record<string, string>> {
+  const token = await SecureStore.getItemAsync(JWT_KEY);
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...extra,
+  };
+}
+
+interface PostOptions {
+  headers?: Record<string, string>;
+  /** Ne pas déclencher unauthorizedHandler si 401 (ex: login, refresh) */
+  skipUnauthorizedHandler?: boolean;
+}
+
+async function post<T>(path: string, body: unknown, options?: PostOptions): Promise<ApiResponse<T>> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
+    headers: await authHeaders(options?.headers),
     body: JSON.stringify(body),
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && !options?.skipUnauthorizedHandler) {
     handleUnauthorized();
   }
 
@@ -43,16 +57,18 @@ async function post<T>(path: string, body: unknown, headers?: Record<string, str
   return { data };
 }
 
-async function get<T>(path: string, headers?: Record<string, string>): Promise<ApiResponse<T>> {
+interface GetOptions {
+  headers?: Record<string, string>;
+  skipUnauthorizedHandler?: boolean;
+}
+
+async function get<T>(path: string, options?: GetOptions): Promise<ApiResponse<T>> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
+    headers: await authHeaders(options?.headers),
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && !options?.skipUnauthorizedHandler) {
     handleUnauthorized();
   }
 

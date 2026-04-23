@@ -1,10 +1,9 @@
 'use client';
-
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-
+import { Shield, ChevronRight, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 
 const ProfileSchema = z.object({
@@ -26,21 +25,41 @@ interface TeamMember {
 const ROLE_LABEL: Record<string, string> = {
   admin: 'Admin',
   idel: 'IDEL collaborateur',
-  doctor: "Médecin prescripteur",
+  doctor: 'Médecin prescripteur',
 };
+
+const ROLE_BADGE: Record<string, string> = {
+  admin: 'bg-[#1e2d6b]/10 text-[#1e2d6b]',
+  idel: 'bg-teal-100 text-teal-700',
+  doctor: 'bg-purple-100 text-purple-700',
+};
+
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('');
+}
 
 export default function ProfilePage() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [currentName, setCurrentName] = useState('');
+  const [currentEmail, setCurrentEmail] = useState('');
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ProfileFormData>({ resolver: zodResolver(ProfileSchema) });
+
+  const watchedName = watch('name', currentName);
 
   useEffect(() => {
     void authClient.getSession().then(({ data }) => {
@@ -49,6 +68,8 @@ export default function ProfilePage() {
           name: data.user.name ?? '',
           image: (data.user.image as string | undefined) ?? '',
         });
+        setCurrentName(data.user.name ?? '');
+        setCurrentEmail(data.user.email ?? '');
       }
     });
   }, [reset]);
@@ -57,10 +78,9 @@ export default function ProfilePage() {
     setLoadingMembers(true);
     try {
       const res = await fetch('/api/v1/team');
-      const data = await res.json() as { data?: { members: TeamMember[] } };
+      const data = (await res.json()) as { data?: { members: TeamMember[] } };
       setMembers(data.data?.members ?? []);
     } catch {
-      // silent
     } finally {
       setLoadingMembers(false);
     }
@@ -80,195 +100,224 @@ export default function ProfilePage() {
     });
 
     if (result.error) {
-      setErrorMsg(result.error.message ?? "Une erreur est survenue");
+      setErrorMsg(result.error.message ?? 'Une erreur est survenue');
       return;
     }
 
-    setSuccessMsg("Profil mis à jour avec succès");
+    setCurrentName(values.name);
+    setSuccessMsg('Profil mis à jour avec succès');
   }
 
+  const displayInitials = getInitials(watchedName || currentName || 'U');
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-800">Mon Profil</h1>
-
-      {/* Section profil */}
-      <section style={{ marginTop: '32px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#1E293B', marginBottom: '20px' }}>
-          Informations personnelles
-        </h2>
-
-        <div style={cardStyle}>
-          <form onSubmit={handleSubmit(onSubmit)} noValidate>
-            <div style={{ marginBottom: '12px' }}>
-              <label htmlFor="profile-name" style={labelStyle}>
-                Nom complet
-              </label>
-              <input
-                id="profile-name"
-                type="text"
-                {...register('name')}
-                aria-label="Nom complet"
-                style={inputStyle}
-              />
-              {errors.name && <p style={errorStyle}>{errors.name.message}</p>}
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <label htmlFor="profile-image" style={labelStyle}>
-                URL de photo de profil (optionnel)
-              </label>
-              <input
-                id="profile-image"
-                type="url"
-                {...register('image')}
-                aria-label="URL de photo de profil"
-                placeholder="https://exemple.fr/photo.jpg"
-                style={inputStyle}
-              />
-              {errors.image && <p style={errorStyle}>{errors.image.message}</p>}
-            </div>
-
-            {errorMsg && <p style={errorStyle}>{errorMsg}</p>}
-            {successMsg && (
-              <p style={{ color: '#16A34A', fontSize: '14px', marginBottom: '12px' }}>{successMsg}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              aria-label="Enregistrer le profil"
-              style={isSubmitting ? { ...buttonStyle, opacity: 0.6, cursor: 'not-allowed' } : buttonStyle}
-            >
-              {isSubmitting ? "Enregistrement…" : "Enregistrer"}
-            </button>
-          </form>
+    <div className="min-h-full">
+      {successMsg && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600" />
+          {successMsg}
         </div>
-      </section>
+      )}
+      {errorMsg && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <XCircle className="h-4 w-4 flex-shrink-0 text-red-500" />
+          {errorMsg}
+        </div>
+      )}
 
-      {/* Section équipe */}
-      <section style={{ marginTop: '32px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#1E293B', marginBottom: '20px' }}>
-          Mon équipe
-        </h2>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-[#1e2d6b]">Profil Administrateur</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Gérez vos informations de compte et vos paramètres de sécurité.
+            </p>
+          </div>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex items-center gap-2 rounded-lg bg-[#1e2d6b] px-5 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isSubmitting ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
+        </div>
 
-        <div style={cardStyle}>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="mb-5 text-base font-semibold text-slate-800">
+                Informations Personnelles
+              </h2>
+
+              <div className="mb-6 flex items-center gap-4">
+                <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-lg font-bold text-indigo-700">
+                  {displayInitials}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-800">{watchedName || currentName}</p>
+                  <p className="text-xs text-slate-500">{currentEmail}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="profile-name"
+                    className="mb-1 block text-sm font-medium text-slate-700"
+                  >
+                    Nom complet
+                  </label>
+                  <input
+                    id="profile-name"
+                    type="text"
+                    {...register('name')}
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#1e2d6b] focus:ring-2 focus:ring-[#1e2d6b]/20"
+                  />
+                  {errors.name && (
+                    <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="profile-email"
+                    className="mb-1 block text-sm font-medium text-slate-700"
+                  >
+                    Adresse e-mail
+                  </label>
+                  <input
+                    id="profile-email"
+                    type="email"
+                    value={currentEmail}
+                    readOnly
+                    className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-500 outline-none"
+                  />
+                  <p className="mt-1 text-xs text-slate-400">
+                    L&apos;adresse e-mail ne peut pas être modifiée.
+                  </p>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="profile-phone"
+                    className="mb-1 block text-sm font-medium text-slate-700"
+                  >
+                    Téléphone
+                    <span className="ml-1 text-xs font-normal text-slate-400">(optionnel)</span>
+                  </label>
+                  <input
+                    id="profile-phone"
+                    type="tel"
+                    disabled
+                    placeholder="+33 6 00 00 00 00"
+                    className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-400 outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-1">
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-5 flex items-center gap-2">
+                <Shield className="h-4 w-4 text-[#0d9488]" />
+                <h2 className="text-base font-semibold text-slate-800">Sécurité</h2>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-700">Face ID / Touch ID</p>
+                    <p className="text-xs text-slate-400">Connexion biométrique</p>
+                  </div>
+                  <div className="relative">
+                    <div className="h-6 w-11 cursor-not-allowed rounded-full bg-slate-200" />
+                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow" />
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-100" />
+
+                <button
+                  type="button"
+                  disabled
+                  className="flex w-full cursor-not-allowed items-center justify-between rounded-lg px-1 py-1 text-left opacity-50 transition hover:bg-slate-50"
+                >
+                  <span className="text-sm font-medium text-slate-700">
+                    Changer le mot de passe
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-slate-400" />
+                </button>
+
+                <div className="border-t border-slate-100" />
+
+                <button
+                  type="button"
+                  disabled
+                  className="flex w-full cursor-not-allowed items-center justify-between rounded-lg px-1 py-1 text-left opacity-50 transition hover:bg-slate-50"
+                >
+                  <span className="text-sm font-medium text-slate-700">
+                    Gérer la double authentification
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-slate-400" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <div className="mt-6">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-5 text-base font-semibold text-slate-800">Mon Équipe</h2>
+
           {loadingMembers ? (
-            <p style={{ color: '#94A3B8', fontSize: '14px' }}>Chargement…</p>
+            <div className="flex items-center gap-2 text-sm text-slate-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Chargement des membres…
+            </div>
           ) : members.length === 0 ? (
-            <p style={{ color: '#94A3B8', fontSize: '14px' }}>Aucun membre dans cette structure.</p>
+            <p className="text-sm text-slate-400">Aucun membre dans cette structure.</p>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
-                  <th style={thStyle}>Nom</th>
-                  <th style={thStyle}>Email</th>
-                  <th style={thStyle}>Rôle</th>
-                  <th style={thStyle}>Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((m) => (
-                  <tr key={m.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={tdStyle}>
-                      {m.name}
+            <ul className="divide-y divide-slate-100">
+              {members.map((m) => (
+                <li key={m.id} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700">
+                    {getInitials(m.name || 'U')}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-medium text-slate-800">{m.name}</p>
                       {m.isSelf && (
-                        <span style={{ marginLeft: '6px', fontSize: '12px', color: '#64748B' }}>(vous)</span>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                          vous
+                        </span>
                       )}
-                    </td>
-                    <td style={tdStyle}>{m.email}</td>
-                    <td style={tdStyle}>
-                      <span style={{
-                        display: 'inline-block',
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        backgroundColor: '#EFF6FF',
-                        color: '#2563EB',
-                      }}>
-                        {ROLE_LABEL[m.role] ?? m.role}
-                      </span>
-                    </td>
-                    <td style={tdStyle}>
-                      <span style={{
-                        display: 'inline-block',
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        backgroundColor: m.disabled ? '#FEE2E2' : '#DCFCE7',
-                        color: m.disabled ? '#DC2626' : '#16A34A',
-                      }}>
-                        {m.disabled ? "Désactivé" : "Actif"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    <p className="truncate text-xs text-slate-400">{m.email}</p>
+                  </div>
+
+                  <div className="flex flex-shrink-0 items-center gap-2">
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${ROLE_BADGE[m.role] ?? 'bg-slate-100 text-slate-600'}`}
+                    >
+                      {ROLE_LABEL[m.role] ?? m.role}
+                    </span>
+
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${m.disabled ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}
+                    >
+                      {m.disabled ? 'Désactivé' : 'Actif'}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
-      </section>
+      </div>
     </div>
   );
 }
-
-const cardStyle: React.CSSProperties = {
-  backgroundColor: '#FFFFFF',
-  borderRadius: '8px',
-  padding: '24px',
-  border: '1px solid #E2E8F0',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: '14px',
-  fontWeight: 500,
-  color: '#374151',
-  marginBottom: '4px',
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '8px 12px',
-  border: '1px solid #CBD5E1',
-  borderRadius: '6px',
-  fontSize: '14px',
-  color: '#1E293B',
-  backgroundColor: '#F8FAFC',
-  boxSizing: 'border-box',
-};
-
-const buttonStyle: React.CSSProperties = {
-  padding: '10px 20px',
-  backgroundColor: '#2563EB',
-  color: '#FFFFFF',
-  border: 'none',
-  borderRadius: '6px',
-  fontSize: '14px',
-  fontWeight: 600,
-  cursor: 'pointer',
-};
-
-const errorStyle: React.CSSProperties = {
-  color: '#DC2626',
-  fontSize: '13px',
-  marginTop: '4px',
-  marginBottom: '8px',
-};
-
-const thStyle: React.CSSProperties = {
-  textAlign: 'left',
-  fontSize: '12px',
-  fontWeight: 600,
-  color: '#64748B',
-  padding: '8px 12px',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: '10px 12px',
-  fontSize: '14px',
-  color: '#374151',
-};

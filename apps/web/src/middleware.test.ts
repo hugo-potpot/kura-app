@@ -31,12 +31,13 @@ describe('middleware', () => {
     expect(auth.api.getSession).not.toHaveBeenCalled();
   });
 
-  it('should redirect to /login when no session on protected route', async () => {
+  it('should redirect to /login with session_expired error when no session on protected route', async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(null as never);
     const request = new NextRequest('http://localhost:3000/dashboard');
     const response = await middleware(request);
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toContain('/login');
+    expect(response.headers.get('location')).toContain('session_expired');
   });
 
   it('should allow access to protected route with valid session and structureId', async () => {

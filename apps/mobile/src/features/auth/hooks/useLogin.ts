@@ -55,7 +55,7 @@ export function useLogin(): UseLoginReturn {
         const { data } = await apiClient.post<LoginResponse>('/api/auth/sign-in/email', {
           email,
           password,
-        });
+        }, { skipUnauthorizedHandler: true });
         attemptsRef.current = 0;
         return data;
       } catch (err: unknown) {
@@ -68,7 +68,9 @@ export function useLogin(): UseLoginReturn {
           setError(`Trop de tentatives, réessayez dans ${LOCKOUT_DURATION} secondes`);
         } else {
           const apiErr = err as { response?: { status: number } };
-          if (apiErr.response?.status === 401) {
+          if (!apiErr.response) {
+            setError('Impossible de se connecter au serveur. Vérifiez votre connexion internet.');
+          } else if (apiErr.response.status === 401) {
             setError('Email ou mot de passe incorrect');
           } else {
             setError('Une erreur est survenue, veuillez réessayer');

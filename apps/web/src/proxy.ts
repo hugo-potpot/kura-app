@@ -39,6 +39,9 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   if (!session) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
+    if (!pathname.startsWith('/api/')) {
+      loginUrl.searchParams.set('error', 'session_expired');
+    }
     return NextResponse.redirect(loginUrl);
   }
 
