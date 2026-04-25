@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 
 import { patients, syncQueue } from '@kura/db';
 import { generateId } from '@kura/shared';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { geocodeAddress } from '@/lib/geocoding';
 
 export interface CreatePatientInput {
@@ -18,6 +18,7 @@ export interface CreatePatientInput {
 }
 
 async function createPatient(input: CreatePatientInput): Promise<typeof patients.$inferSelect> {
+  const db = await getDb();
   const now = new Date();
   const patientId = generateId();
 
@@ -67,7 +68,8 @@ async function createPatient(input: CreatePatientInput): Promise<typeof patients
     void (async () => {
       const coords = await geocodeAddress(input.address);
       if (!coords) return;
-      await db
+      const geoDb = await getDb();
+      await geoDb
         .update(patients)
         .set({ latitude: coords.lat, longitude: coords.lng })
         .where(eq(patients.id, patientId));

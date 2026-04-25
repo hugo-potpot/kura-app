@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { patients } from '@kura/db';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 
 export type Patient = typeof patients.$inferSelect;
 
 async function fetchPatient(id: string): Promise<Patient | null> {
+  const db = await getDb();
   const result = await db
     .select()
     .from(patients)

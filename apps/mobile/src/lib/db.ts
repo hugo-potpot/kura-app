@@ -1,37 +1,18 @@
-import { drizzle } from 'drizzle-orm/expo-sqlite';
-import { openDatabaseSync } from 'expo-sqlite';
-import * as schema from '@kura/db';
+import { Platform } from 'react-native';
 
-const sqlite = openDatabaseSync('kura.db');
+import type { AppDb } from './db.native';
 
-sqlite.execSync(`
-  CREATE TABLE IF NOT EXISTS patients (
-    id TEXT PRIMARY KEY,
-    structure_id TEXT NOT NULL,
-    first_name TEXT NOT NULL,
-    last_name TEXT NOT NULL,
-    address TEXT NOT NULL,
-    latitude REAL,
-    longitude REAL,
-    phone TEXT,
-    treating_doctor TEXT,
-    assigned_idel_id TEXT,
-    status TEXT NOT NULL DEFAULT 'active',
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    synced_at INTEGER
-  );
+/**
+ * Point d'entrée unique : évite d'importer expo-sqlite dans le bundle web (WASM manquant / Metro).
+ * Le natif charge `db.native`, le web charge `db.web` (sql.js).
+ */
+export async function getDb(): Promise<AppDb> {
+  if (Platform.OS === 'web') {
+    const { getDb: getWeb } = await import('./db.web');
+    return (await getWeb()) as unknown as AppDb;
+  }
+  const { getDb: getNative } = await import('./db.native');
+  return getNative();
+}
 
-  CREATE TABLE IF NOT EXISTS sync_queue (
-    id TEXT PRIMARY KEY,
-    entity_type TEXT NOT NULL,
-    entity_id TEXT NOT NULL,
-    operation TEXT NOT NULL,
-    payload TEXT NOT NULL,
-    retry_count INTEGER NOT NULL DEFAULT 0,
-    last_error TEXT,
-    created_at INTEGER NOT NULL
-  );
-`);
-
-export const db = drizzle(sqlite, { schema });
+export type { AppDb } from './db.native';
