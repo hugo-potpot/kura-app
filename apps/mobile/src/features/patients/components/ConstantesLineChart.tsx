@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, Platform, useWindowDimensions } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
-import { useWindowDimensions } from 'react-native';
 
 import { COLORS } from '@/theme/kura-theme';
 
@@ -88,6 +88,21 @@ const statStyles = StyleSheet.create({
 export function ConstantesLineChart({ dataPoints, unit, label, normalRange, alertRange }: Props): React.JSX.Element {
   const { width } = useWindowDimensions();
 
+  // Clé stable pour remonter LineChart sans animation « pliage » entre deux séries de longueurs différentes
+  // (animateOnDataChange + Reanimated → Invariant Violation sur output range).
+  const lineChartKey = useMemo(
+    () =>
+      dataPoints.length === 0
+        ? 'empty'
+        : [
+            dataPoints.map((p) => `${p.date.getTime()}:${p.value}`).join(','),
+            normalRange ? `${normalRange.min}-${normalRange.max}` : '',
+            alertRange ? `${alertRange.min}-${alertRange.max}` : '',
+            String(width),
+          ].join('|'),
+    [dataPoints, normalRange, alertRange, width],
+  );
+
   if (dataPoints.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -162,6 +177,7 @@ export function ConstantesLineChart({ dataPoints, unit, label, normalRange, aler
         nestedScrollEnabled={Platform.OS === 'android'}
       >
         <LineChart
+          key={lineChartKey}
           data={chartDataSampled}
           width={chartWidth}
           height={160}
@@ -232,7 +248,7 @@ export function ConstantesLineChart({ dataPoints, unit, label, normalRange, aler
               );
             },
           }}
-          animateOnDataChange
+          isAnimated={false}
         />
       </ScrollView>
 
