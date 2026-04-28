@@ -42,4 +42,19 @@ export const SQLITE_DDL = `
     last_error TEXT,
     created_at INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS planning_entries (
+    id TEXT PRIMARY KEY,
+    patient_id TEXT NOT NULL,
+    idel_id TEXT NOT NULL,
+    date TEXT NOT NULL,
+    order_index INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    eta_minutes INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    synced_at INTEGER
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_planning_entries_idel_date ON planning_entries(idel_id, date);
 `;

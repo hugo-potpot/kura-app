@@ -22,7 +22,9 @@
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1",
       "^@kura/shared$": "<rootDir>/../../packages/shared/src/index.ts",
-      "^@kura/db$": "<rootDir>/../../packages/db/schema/index.ts"
+      "^@kura/db$": "<rootDir>/../../packages/db/schema/index.ts",
+      "^react-native-maps$": "<rootDir>/test-utils/react-native-maps-stub.js",
+      "^@react-native-async-storage/async-storage$": "<rootDir>/test-utils/async-storage-stub.js"
     }
   },
   "dependencies": {
@@ -31,6 +33,7 @@
     "@kura/shared": "workspace:^",
     "@react-navigation/bottom-tabs": "^7.7.3",
     "@react-navigation/elements": "^2.8.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/native": "^7.1.28",
     "@tanstack/react-query": "^5.90.21",
     "drizzle-orm": "^0.38.3",
@@ -57,6 +60,7 @@
     "react-hook-form": "^7.72.0",
     "react-native": "0.83.2",
     "react-native-gesture-handler": "~2.30.0",
+    "react-native-maps": "1.27.2",
     "react-native-gifted-charts": "^1.4.76",
     "react-native-paper": "^5.15.0",
     "react-native-qrcode-svg": "^6.3.21",
