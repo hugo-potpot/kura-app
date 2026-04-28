@@ -1,5 +1,5 @@
 import { DEFAULT_CARE_MINUTES } from '../utils/planning-utils';
-import { optimizeVisitOrder, type VisitNode } from './tsp-optimizer';
+import { computeEtaSegmentsForVisitOrder, optimizeVisitOrder, type VisitNode } from './tsp-optimizer';
 
 function node(
   id: string,
@@ -67,5 +67,16 @@ describe('optimizeVisitOrder', () => {
     const out = optimizeVisitOrder([a, b, c]);
     expect(out).toHaveLength(3);
     expect(new Set(out.map((s) => s.entryId)).size).toBe(3);
+  });
+});
+
+describe('computeEtaSegmentsForVisitOrder', () => {
+  it('should apply user order and renumber orderIndex 0..n-1', () => {
+    const a = node('a', 45.0, 4.0, 'A', 'A', 0);
+    const b = node('b', 45.02, 4.0, 'B', 'B', 1);
+    const out = computeEtaSegmentsForVisitOrder([b, a]);
+    expect(out.map((s) => s.entryId)).toEqual(['b', 'a']);
+    expect(out.map((s) => s.orderIndex)).toEqual([0, 1]);
+    expect(out[0]?.etaMinutes).toBeGreaterThanOrEqual(DEFAULT_CARE_MINUTES);
   });
 });

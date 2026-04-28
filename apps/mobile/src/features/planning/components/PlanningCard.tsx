@@ -1,4 +1,4 @@
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, Pressable } from 'react-native';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -33,6 +33,10 @@ interface PlanningCardProps {
   /** Ligne courte FR37 : pourquoi cette position (après optimiseur local). */
   readonly placementExplanation?: string | null;
   readonly addressGeocoded?: boolean;
+  /** Long press (≥ 300 ms) pour activer le drag — fourni par DraggableFlatList. */
+  readonly drag?: () => void;
+  /** Carte en cours de déplacement (animation légère). */
+  readonly dragActive?: boolean;
 }
 
 export function PlanningCard({
@@ -45,25 +49,25 @@ export function PlanningCard({
   orderIndex,
   placementExplanation = null,
   addressGeocoded = true,
+  drag,
+  dragActive = false,
 }: PlanningCardProps): React.JSX.Element {
   const st = STATUS_STYLE[status];
   const badgePalette = badgePaletteForStatus(status);
 
   const etaPart = etaMinutesLabel === null ? '' : `, ${etaMinutesLabel}`;
-  const geoPart =
-    addressGeocoded ? '' : ', adresse sans coordonnées GPS';
+  const geoPart = addressGeocoded ? '' : ', adresse sans coordonnées GPS';
   const placePart =
-    placementExplanation !== null && placementExplanation.length > 0
-      ? `, ${placementExplanation}`
-      : '';
+    placementExplanation !== null && placementExplanation.length > 0 ? `, ${placementExplanation}` : '';
   const accessibilityLabel = `Visite ${orderIndex + 1}, ${patientDisplayName}, ${estimatedClockLabel}, ${careTypeLabel}${etaPart}${geoPart}${placePart}`;
 
-  return (
-    <View
-      style={[styles.card, { opacity: st.opacity }]}
-      accessibilityRole="summary"
-      accessibilityLabel={accessibilityLabel}
-    >
+  const rowInner = (
+    <>
+      {drag !== undefined && (
+        <View style={styles.dragHandle} accessibilityElementsHidden>
+          <MaterialCommunityIcons name="drag-vertical" size={18} color={COLORS.textMuted} />
+        </View>
+      )}
       <View style={styles.timeCol}>
         <Text style={[styles.timeText, status === 'done' && styles.muted]} maxFontSizeMultiplier={1.5}>
           {estimatedClockLabel}
@@ -87,11 +91,7 @@ export function PlanningCard({
             size={12}
             color={status === 'done' ? COLORS.textMuted : COLORS.textSecondary}
           />
-          <Text
-            style={[styles.addr, status === 'done' && styles.muted]}
-            numberOfLines={1}
-            maxFontSizeMultiplier={1.5}
-          >
+          <Text style={[styles.addr, status === 'done' && styles.muted]} numberOfLines={1} maxFontSizeMultiplier={1.5}>
             {addressShort}
           </Text>
           {!addressGeocoded && (
@@ -125,7 +125,33 @@ export function PlanningCard({
           style={styles.trailingIcon}
         />
       )}
-    </View>
+    </>
+  );
+
+  if (drag === undefined) {
+    return (
+      <View
+        style={[styles.card, { opacity: st.opacity }]}
+        accessibilityRole="summary"
+        accessibilityLabel={accessibilityLabel}
+      >
+        {rowInner}
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      delayLongPress={300}
+      onLongPress={() => {
+        drag();
+      }}
+  accessibilityRole="summary"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint="Maintenir pour réorganiser la tournée"
+    >
+      <View style={[styles.card, { opacity: st.opacity }, dragActive && styles.cardDragging]}>{rowInner}</View>
+    </Pressable>
   );
 }
 
@@ -137,7 +163,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -147,6 +173,23 @@ const styles = StyleSheet.create({
       },
       android: { elevation: 2 },
     }),
+  },
+  cardDragging: {
+    transform: [{ rotate: '2deg' }],
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
+      },
+      android: { elevation: 5 },
+    }),
+  },
+  dragHandle: {
+    minWidth: 40,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   timeCol: { minWidth: 44, alignItems: 'center' },
   timeText: {

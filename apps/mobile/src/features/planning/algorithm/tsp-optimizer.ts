@@ -108,6 +108,76 @@ function twoOptImprove(
   return current;
 }
 
+/**
+ * Recalcule les segments trajet/soin (`etaMinutes`) pour un ordre de visites déjà fixé (ex. après drag & drop),
+ * même logique géographique que la phase finale de `optimizeVisitOrder`.
+ */
+export function computeEtaSegmentsForVisitOrder(
+  orderedVisits: readonly VisitNode[],
+): OptimizedSegment[] {
+  if (orderedVisits.length === 0) return [];
+
+  const geo = orderedVisits.filter(isGeo);
+  if (geo.length === 0) {
+    return orderedVisits.map((v, idx) => ({
+      entryId: v.entryId,
+      orderIndex: idx,
+      etaMinutes: DEFAULT_CARE_MINUTES,
+      travelMinutes: 0,
+      explanationLine:
+        'Adresse non géolocalisée — ordre manuel ; trajet non estimé (complétez le GPS).',
+    }));
+  }
+
+  const start = centroidOf(geo.map((g) => ({ latitude: g.latitude, longitude: g.longitude })));
+  let prevGeoPoint: GeoPoint | null = null;
+  const out: OptimizedSegment[] = [];
+  let cumClock = PLANNING_DAY_START_MINUTES;
+
+  for (let i = 0; i < orderedVisits.length; i += 1) {
+    const v = orderedVisits[i]!;
+    let travelKm = 0;
+
+    if (isGeo(v)) {
+      if (prevGeoPoint === null) {
+        travelKm = haversineKm(start, v);
+      } else {
+        travelKm = haversineKm(prevGeoPoint, v);
+      }
+      prevGeoPoint = v;
+    }
+
+    const travelMin = travelMinutesFromKm(travelKm, AVERAGE_URBAN_SPEED_KMH);
+    const etaMinutes = travelMin + DEFAULT_CARE_MINUTES;
+
+    const arrivalBeforeNoon = cumClock < 12 * 60;
+    cumClock += etaMinutes;
+    const morningHint = arrivalBeforeNoon ? ' • Créneau matin' : '';
+
+    const prev = i > 0 ? orderedVisits[i - 1] : undefined;
+
+    let explanationLine: string;
+    if (!isGeo(v)) {
+      explanationLine =
+        'Adresse non géolocalisée — ordre manuel ; trajet non estimé (complétez le GPS).';
+    } else if (prev === undefined || !isGeo(prev)) {
+      explanationLine = `Ordre manuel — premier trajet géolocalisé ~${travelMin} min${morningHint}`;
+    } else {
+      explanationLine = `Après ${patientShortLabel(prev)} — trajet ~${travelMin} min • ordre manuel`;
+    }
+
+    out.push({
+      entryId: v.entryId,
+      orderIndex: i,
+      etaMinutes,
+      travelMinutes: travelMin,
+      explanationLine,
+    });
+  }
+
+  return out;
+}
+
 function nearestNeighborOrder(geo: readonly VisitNode[], start: GeoPoint): number[] {
   const unvisited = new Set<number>(Array.from({ length: geo.length }, (_, i) => i));
   const order: number[] = [];
