@@ -81,7 +81,7 @@ development_status:
   # ─────────────────────────────────────────────────────────────────────────────
   epic-4: in-progress
   4-1-affichage-du-planning-quotidien-ecran-principal: review
-  4-2-generation-automatique-du-planning-optimise-algorithme-ia: backlog
+  4-2-generation-automatique-du-planning-optimise-algorithme-ia: ready-for-dev
   4-3-modification-manuelle-du-planning-drag-drop: backlog
   4-4-gestion-des-patients-absents-urgences: backlog
   4-5-carte-itineraire-navigation-gps: backlog
