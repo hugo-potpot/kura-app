@@ -82,8 +82,8 @@ development_status:
   epic-4: in-progress
   4-1-affichage-du-planning-quotidien-ecran-principal: review
   4-2-generation-automatique-du-planning-optimise-algorithme-ia: review
-  4-3-modification-manuelle-du-planning-drag-drop: backlog
-  4-4-gestion-des-patients-absents-urgences: backlog
+  4-3-modification-manuelle-du-planning-drag-drop: ready-for-dev
+  4-4-gestion-des-patients-absents-urgences: ready-for-dev
   4-5-carte-itineraire-navigation-gps: backlog
   4-6-preferences-de-planning: backlog
   epic-4-retrospective: optional
