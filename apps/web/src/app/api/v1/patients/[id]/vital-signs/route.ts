@@ -1,4 +1,3 @@
-import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { eq, and, gte } from 'drizzle-orm';
 
@@ -15,7 +14,7 @@ const RANGE_MS: Record<string, number> = {
 };
 
 export async function GET(req: Request, { params }: RouteParams): Promise<NextResponse> {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await auth.api.getSession({ headers: req.headers });
   if (!session) {
     return NextResponse.json({ error: { code: 'UNAUTHORIZED' } }, { status: 401 });
   }

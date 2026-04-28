@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 
-import { apiClient } from '@/lib/api-client';
+import { apiClient, getApiBaseUrl } from '@/lib/api-client';
 
-const RESET_PASSWORD_URL = `${process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000'}/reset-password`;
+const RESET_PASSWORD_URL = `${getApiBaseUrl()}/reset-password`;
 
 interface UseForgotPasswordReturn {
   requestReset: (email: string) => Promise<void>;

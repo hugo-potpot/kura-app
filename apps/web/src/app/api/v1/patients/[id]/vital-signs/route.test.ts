@@ -26,10 +26,6 @@ vi.mock('@kura/db', () => ({
   },
 }));
 
-vi.mock('next/headers', () => ({
-  headers: vi.fn(() => new Headers()),
-}));
-
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { GET } from './route';

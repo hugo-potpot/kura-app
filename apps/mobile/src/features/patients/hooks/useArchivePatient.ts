@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 
-const API_BASE = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+import { getApiBaseUrl } from '@/lib/api-client';
 const JWT_KEY = 'kura_jwt';
 
 export function useArchivePatient() {
@@ -10,7 +10,7 @@ export function useArchivePatient() {
   return useMutation({
     mutationFn: async (patientId: string) => {
       const token = await SecureStore.getItemAsync(JWT_KEY);
-      const res = await fetch(`${API_BASE}/api/v1/patients/${patientId}/archive`, {
+      const res = await fetch(`${getApiBaseUrl()}/api/v1/patients/${patientId}/archive`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

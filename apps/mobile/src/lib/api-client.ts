@@ -1,6 +1,21 @@
 import * as SecureStore from 'expo-secure-store';
 
-const API_BASE_URL = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+/**
+ * Base HTTP de l'app Next (origine seule, sans /api/v1).
+ * Les chemins passés à apiClient commencent déjà par /api/v1/... ou /api/auth/...
+ * Si EXPO_PUBLIC_API_URL se termine par /api/v1 (ancienne doc), on le retire pour éviter
+ * des URLs dupliquées du type .../api/v1/api/v1/patients (404 silencieux côté hooks).
+ */
+export function getApiBaseUrl(): string {
+  const raw = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+  return raw
+    .trim()
+    .replace(/\/+$/, '')
+    .replace(/\/api\/v1$/i, '')
+    .replace(/\/api$/i, '');
+}
+
+const API_BASE_URL = getApiBaseUrl();
 const JWT_KEY = 'kura_jwt';
 
 interface ApiResponse<T> {

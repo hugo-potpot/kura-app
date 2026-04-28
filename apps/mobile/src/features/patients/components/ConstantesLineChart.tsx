@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 import { useWindowDimensions } from 'react-native';
 
@@ -155,7 +155,12 @@ export function ConstantesLineChart({ dataPoints, unit, label, normalRange, aler
       )}
 
       {/* Chart */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chartScroll}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.chartScroll}
+        nestedScrollEnabled={Platform.OS === 'android'}
+      >
         <LineChart
           data={chartDataSampled}
           width={chartWidth}

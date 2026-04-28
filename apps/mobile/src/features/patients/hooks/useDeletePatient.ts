@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
 
-const API_BASE = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+import { getApiBaseUrl } from '@/lib/api-client';
 const JWT_KEY = 'kura_jwt';
 
 export function useDeletePatient() {
@@ -10,7 +10,7 @@ export function useDeletePatient() {
   return useMutation({
     mutationFn: async ({ patientId, force = false }: { patientId: string; force?: boolean }) => {
       const token = await SecureStore.getItemAsync(JWT_KEY);
-      const url = `${API_BASE}/api/v1/patients/${patientId}${force ? '?force=true' : ''}`;
+      const url = `${getApiBaseUrl()}/api/v1/patients/${patientId}${force ? '?force=true' : ''}`;
       const res = await fetch(url, {
         method: 'DELETE',
         headers: {

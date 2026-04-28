@@ -2,30 +2,15 @@ import { renderHook, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
-import { getDb } from '@/lib/db';
-
-const mockSelect = jest.fn();
-
-jest.mock('@/lib/db', () => ({
-  getDb: jest.fn(),
-}));
-
-jest.mock('@kura/db', () => ({
-  vitalSigns: {
-    patientId: 'patient_id',
-    measuredAt: 'measured_at',
-  },
-}));
-
-jest.mock('drizzle-orm', () => ({
-  eq: jest.fn((col, val) => ({ col, val })),
-  and: jest.fn((...args) => args),
-  gte: jest.fn((col, val) => ({ col, val })),
-}));
+import { apiClient } from '@/lib/api-client';
 
 import { useVitalSigns } from './useVitalSigns';
 
-const mockGetDb = getDb as jest.MockedFunction<typeof getDb>;
+jest.mock('@/lib/api-client', () => ({
+  apiClient: { get: jest.fn() },
+}));
+
+const mockGet = apiClient.get as jest.MockedFunction<typeof apiClient.get>;
 
 function makeWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -38,46 +23,42 @@ const MOCK_VITAL_SIGN = {
   id: 'vs-1',
   patientId: 'patient-1',
   authorId: 'user-1',
-  measuredAt: new Date('2026-04-01T09:00:00Z'),
+  measuredAt: '2026-04-01T09:00:00.000Z',
   systolic: 120,
   diastolic: 80,
   glycemia: 5.5,
   weight: 70,
-  temperature: 37.0,
+  temperature: 37,
   spo2: 98,
-  createdAt: new Date('2026-04-01T09:00:00Z'),
+  createdAt: '2026-04-01T09:00:00.000Z',
   syncedAt: null,
 };
 
-function makeSelectChain(returnValue: unknown) {
-  const orderBy = jest.fn().mockResolvedValue(returnValue);
-  const where = jest.fn(() => ({ orderBy }));
-  const from = jest.fn(() => ({ where }));
-  mockSelect.mockReturnValueOnce({ from });
-}
-
 describe('useVitalSigns', () => {
   beforeEach(() => {
-    mockSelect.mockReset();
-    mockGetDb.mockReset();
-    mockGetDb.mockResolvedValue({ select: mockSelect } as never);
+    mockGet.mockReset();
   });
 
   it('retourne les constantes vitales pour un patient', async () => {
-    makeSelectChain([MOCK_VITAL_SIGN]);
+    mockGet.mockResolvedValue({
+      data: { data: { vitalSigns: [MOCK_VITAL_SIGN] } },
+    });
 
     const { result } = renderHook(() => useVitalSigns('patient-1', '30d'), {
       wrapper: makeWrapper(),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/patients/patient-1/vital-signs?range=30d');
     expect(result.current.data).toHaveLength(1);
     expect(result.current.data?.[0]?.id).toBe('vs-1');
     expect(result.current.data?.[0]?.systolic).toBe(120);
   });
 
   it('retourne un tableau vide si aucune constante enregistrée', async () => {
-    makeSelectChain([]);
+    mockGet.mockResolvedValue({
+      data: { data: { vitalSigns: [] } },
+    });
 
     const { result } = renderHook(() => useVitalSigns('patient-1', '7d'), {
       wrapper: makeWrapper(),
@@ -93,17 +74,20 @@ describe('useVitalSigns', () => {
     });
 
     expect(result.current.fetchStatus).toBe('idle');
-    expect(mockSelect).not.toHaveBeenCalled();
+    expect(mockGet).not.toHaveBeenCalled();
   });
 
   it('utilise range=30d par défaut', async () => {
-    makeSelectChain([MOCK_VITAL_SIGN]);
+    mockGet.mockResolvedValue({
+      data: { data: { vitalSigns: [MOCK_VITAL_SIGN] } },
+    });
 
     const { result } = renderHook(() => useVitalSigns('patient-1'), {
       wrapper: makeWrapper(),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/patients/patient-1/vital-signs?range=30d');
     expect(result.current.data).toHaveLength(1);
   });
 });
