@@ -1,6 +1,6 @@
 # Story 4.2 : Génération automatique du planning optimisé (algorithme IA)
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note : validation optionnelle via validate-create-story avant dev-story. -->
 
@@ -49,14 +49,14 @@ afin de gagner du temps sur l’organisation de ma tournée et de réduire les t
 
 ## Tâches / sous-tâches
 
-- [ ] Créer `apps/mobile/src/features/planning/algorithm/haversine.ts` (+ tests) — distances km ou minutes trajet avec vitesse moyenne **constante documentée**.  
-- [ ] Créer `tsp-optimizer.ts` — entrée : liste de visites projetées depuis patients + métadonnées ; sortie : ordre + segments minutes ; NN puis 2-opt borné.
-- [ ] Co-localiser `tsp-optimizer.test.ts` : cas **0**, **1**, **15** patients, patients **sans coords**, graphe trivialement optimal.  
-- [ ] Ajouter orchestration Drizzle dans un hook/service (ex. `useOptimizePlanning.ts` ou `optimizeDailyPlanning.ts`) : transaction update `planning_entries` pour la **date du jour** + `idel_id` courant.
-- [ ] Intégrer CTA UX sur `planning/index.tsx` (bouton « Optimiser la tournée » ou équivalent, `accessibilityLabel`, feedback chargement skeleton / désactivation).  
-- [ ] Étendre `PlanningCard` (nouvelle prop optionnelle) pour **FR37** + badge adresse non géolocalisée.  
-- [ ] Mesurer perf (console `__DEV__` ou assertion test perf soft) sous 15 nœuds.  
-- [ ] Ne pas régler JWT dans AsyncStorage ; pas de données sensibles dans les logs.
+- [x] Créer `apps/mobile/src/features/planning/algorithm/haversine.ts` (+ tests) — distances km ou minutes trajet avec vitesse moyenne **constante documentée**.  
+- [x] Créer `tsp-optimizer.ts` — entrée : liste de visites projetées depuis patients + métadonnées ; sortie : ordre + segments minutes ; NN puis 2-opt borné.
+- [x] Co-localiser `tsp-optimizer.test.ts` : cas **0**, **1**, **15** patients, patients **sans coords**, graphe trivialement optimal.
+- [x] Ajouter orchestration Drizzle dans un hook/service (ex. `useOptimizePlanning.ts` ou `optimizeDailyPlanning.ts`) : transaction update `planning_entries` pour la **date du jour** + `idel_id` courant.
+- [x] Intégrer CTA UX sur `planning/index.tsx` (bouton « Optimiser la tournée » ou équivalent, `accessibilityLabel`, feedback chargement skeleton / désactivation).  
+- [x] Étendre `PlanningCard` (nouvelle prop optionnelle) pour **FR37** + badge adresse non géolocalisée.  
+- [x] Mesurer perf (console `__DEV__` ou assertion test perf soft) sous 15 nœuds.  
+- [x] Ne pas régler JWT dans AsyncStorage ; pas de données sensibles dans les logs.
 
 ## Notes de développement
 
@@ -133,8 +133,7 @@ Réutiliser toute la mécanique `usePlanning`, `PlanningCard`, `formatPlanningDa
 
 ## Statut de fin de workflow
 
-- **ready-for-dev** — analyse contextuelle « ultimate story » BMAD créée.  
-- Note : « analyse exhaustive context engine — guide développeur couvrant garde-fous, chemins fichier et exclusions de périmètre ».
+- **review** — implémentation complète conforme périmètre story ; prête pour `code-review` (LLM différent conseillé).
 
 ---
 
@@ -142,10 +141,33 @@ Réutiliser toute la mécanique `usePlanning`, `PlanningCard`, `formatPlanningDa
 
 ### Agent Model Used
 
-_(à remplir par l’agent dev au moment de l’implémentation.)_
+Composer (workflow dev-story BMAD, avril 2026)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Module **Haversine** + durée trajet depuis `AVERAGE_URBAN_SPEED_KMH` (urban) et **`DEFAULT_CARE_MINUTES`** (soins par défaut) dans `planning-utils.ts`.
+- **`optimizeVisitOrder`** : NN depuis le centroid des points géolocalisés, **2-opt** sur le sous-ensemble géo (≤ ~80 passes), patients sans coords en queue stable (nom + ordre précédent). Segments **`etaMinutes` = trajet + soins** conforme AC.
+- Persistance **`optimizeDailyPlanning`** : transaction Drizzle, `updatedAt` + **`syncedAt: null`** sur lignes modifiées. Log **`__DEV__`** du temps calcul+SQLite. Pas d’optimisation automatique au focus (seul bouton conforme périmètre minimal story ; documenté ici pour éviter conflits **4.3**).
+- UI : bouton **Optimiser la tournée** avec désactivation/indicateur de chargement ; **PlanningCard** : ligne FR37 + badge **Adresse non géolocalisée** si coords manquantes.
+- Tests Jest **haversine.test.ts** + **tsp-optimizer.test.ts** (0/1/15 patients, sans coords, perf < 5s sur 15 nœuds).
+
 ### File List
+
+- `apps/mobile/src/features/planning/algorithm/haversine.ts`
+- `apps/mobile/src/features/planning/algorithm/haversine.test.ts`
+- `apps/mobile/src/features/planning/algorithm/tsp-optimizer.ts`
+- `apps/mobile/src/features/planning/algorithm/tsp-optimizer.test.ts`
+- `apps/mobile/src/features/planning/utils/planning-utils.ts`
+- `apps/mobile/src/features/planning/model/types.ts`
+- `apps/mobile/src/features/planning/lib/fetchPlanningRows.ts`
+- `apps/mobile/src/features/planning/services/optimizeDailyPlanning.ts`
+- `apps/mobile/src/features/planning/hooks/useOptimizePlanning.ts`
+- `apps/mobile/src/features/planning/hooks/usePlanning.ts`
+- `apps/mobile/src/features/planning/components/PlanningCard.tsx`
+- `apps/mobile/src/app/(app)/planning/index.tsx`
+
+## Change Log
+
+- 2026-04-28 : Implémentation NN+2-opt local, persistance Drizzle offline, UX optimisation + FR37 (explications + badge non géoloc).

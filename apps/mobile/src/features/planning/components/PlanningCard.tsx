@@ -30,6 +30,9 @@ interface PlanningCardProps {
   readonly etaMinutesLabel: string | null;
   readonly status: PlanningEntryStatus;
   readonly orderIndex: number;
+  /** Ligne courte FR37 : pourquoi cette position (après optimiseur local). */
+  readonly placementExplanation?: string | null;
+  readonly addressGeocoded?: boolean;
 }
 
 export function PlanningCard({
@@ -40,12 +43,20 @@ export function PlanningCard({
   etaMinutesLabel,
   status,
   orderIndex,
+  placementExplanation = null,
+  addressGeocoded = true,
 }: PlanningCardProps): React.JSX.Element {
   const st = STATUS_STYLE[status];
   const badgePalette = badgePaletteForStatus(status);
 
   const etaPart = etaMinutesLabel === null ? '' : `, ${etaMinutesLabel}`;
-  const accessibilityLabel = `Visite ${orderIndex + 1}, ${patientDisplayName}, ${estimatedClockLabel}, ${careTypeLabel}${etaPart}`;
+  const geoPart =
+    addressGeocoded ? '' : ', adresse sans coordonnées GPS';
+  const placePart =
+    placementExplanation !== null && placementExplanation.length > 0
+      ? `, ${placementExplanation}`
+      : '';
+  const accessibilityLabel = `Visite ${orderIndex + 1}, ${patientDisplayName}, ${estimatedClockLabel}, ${careTypeLabel}${etaPart}${geoPart}${placePart}`;
 
   return (
     <View
@@ -83,7 +94,20 @@ export function PlanningCard({
           >
             {addressShort}
           </Text>
+          {!addressGeocoded && (
+            <Text style={styles.fallbackBadge} maxFontSizeMultiplier={1.5}>
+              Adresse non géolocalisée
+            </Text>
+          )}
         </View>
+        {placementExplanation !== null && placementExplanation.length > 0 && (
+          <View style={styles.explainRow}>
+            <MaterialCommunityIcons name="lightbulb-outline" size={13} color={COLORS.teal} />
+            <Text style={styles.explainText} maxFontSizeMultiplier={1.5}>
+              {placementExplanation}
+            </Text>
+          </View>
+        )}
         {etaMinutesLabel !== null && (
           <View style={styles.etaRow}>
             <MaterialCommunityIcons name="walk" size={12} color={COLORS.textMuted} />
@@ -163,6 +187,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
+    flexWrap: 'wrap',
+  },
+  fallbackBadge: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.tealAccent,
+    backgroundColor: '#E8F8F6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  explainRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginTop: 6,
+  },
+  explainText: {
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 15,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
   },
   addr: {
     fontSize: 12,

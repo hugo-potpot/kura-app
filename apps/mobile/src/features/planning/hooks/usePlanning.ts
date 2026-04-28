@@ -1,35 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
-import { and, asc, eq } from 'drizzle-orm';
-
-import { patients, planningEntries } from '@kura/db';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuthStore } from '@/features/auth/stores/auth-store';
 import { getDb } from '@/lib/db';
 
+import { fetchPlanningVisitsForDate } from '../lib/fetchPlanningRows';
 import { seedDevPlanningIfEmpty } from '../lib/devPlanningSeed';
+import type { PlanningVisitRow } from '../model/types';
 import {
   estimatedVisitClockMinutes,
   formatPlanningDateKey,
   minutesToClockLabel,
-  shortenAddress,
   sortEntryEtaSlices,
   sumEtaMinutes,
-  type PlanningEntryStatus,
+  type EntryEtaSlice,
 } from '../utils/planning-utils';
 
-export interface PlanningVisitRow {
-  entryId: string;
-  patientId: string;
-  orderIndex: number;
-  status: PlanningEntryStatus;
-  etaMinutes: number | null;
-  patientFirstName: string;
-  patientLastName: string;
-  addressShort: string;
-  latitude: number | null;
-  longitude: number | null;
-  syncedAt: Date | null;
-}
+export type { PlanningVisitRow } from '../model/types';
 
 const DAYS_FR = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 const MONTHS_FR = [
@@ -68,11 +54,17 @@ export function usePlanning(): {
   showSkeleton: boolean;
   headerDateLabel: string;
   pins: PlanningMapPin[];
+  refetchPlanning: () => void;
 } {
   const userId = useAuthStore((s) => s.user?.id ?? null);
   const [visits, setVisits] = useState<PlanningVisitRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [slowLoad, setSlowLoad] = useState(false);
+  const [reloadNonce, setReloadNonce] = useState(0);
+
+  const refetchPlanning = useCallback(() => {
+    setReloadNonce((n) => n + 1);
+  }, []);
 
   const dateKey = useMemo(() => formatPlanningDateKey(new Date()), []);
 
@@ -95,31 +87,9 @@ export function usePlanning(): {
         if (__DEV__) {
           await seedDevPlanningIfEmpty(db, userId);
         }
-        const rows = await db
-          .select({
-            entry: planningEntries,
-            patient: patients,
-          })
-          .from(planningEntries)
-          .innerJoin(patients, eq(planningEntries.patientId, patients.id))
-          .where(and(eq(planningEntries.idelId, userId), eq(planningEntries.date, dateKey)))
-          .orderBy(asc(planningEntries.orderIndex));
+        const mapped = await fetchPlanningVisitsForDate(db, userId, dateKey);
 
         if (cancelled) return;
-
-        const mapped: PlanningVisitRow[] = rows.map((r) => ({
-          entryId: r.entry.id,
-          patientId: r.patient.id,
-          orderIndex: r.entry.orderIndex,
-          status: r.entry.status as PlanningEntryStatus,
-          etaMinutes: r.entry.etaMinutes,
-          patientFirstName: r.patient.firstName,
-          patientLastName: r.patient.lastName,
-          addressShort: shortenAddress(r.patient.address),
-          latitude: r.patient.latitude,
-          longitude: r.patient.longitude,
-          syncedAt: r.entry.syncedAt,
-        }));
 
         setVisits(mapped);
       } finally {
@@ -129,7 +99,7 @@ export function usePlanning(): {
     return () => {
       cancelled = true;
     };
-  }, [userId, dateKey]);
+  }, [userId, dateKey, reloadNonce]);
 
   const sortedEtaSlices = useMemo(() => {
     const slices: EntryEtaSlice[] = visits.map((v) => ({
@@ -159,7 +129,7 @@ export function usePlanning(): {
         });
       }
     }
-    return sortEntryEtaSlices(out);
+    return [...out].sort((a, b) => a.orderIndex - b.orderIndex);
   }, [visits]);
 
   const showSkeleton = isLoading && slowLoad;
@@ -177,6 +147,7 @@ export function usePlanning(): {
     showSkeleton,
     headerDateLabel,
     pins,
+    refetchPlanning,
   };
 }
 

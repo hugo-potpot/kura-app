@@ -44,6 +44,12 @@ export function sumEtaMinutes(entries: readonly { etaMinutes: number | null }[])
 
 export const DEFAULT_CARE_TYPE_LABEL = 'Soins';
 
+/** Durée soin sur place (minutes) tant que le métier n’expose pas de durée patient (schéma évolutif). */
+export const DEFAULT_CARE_MINUTES = 30;
+
+/** Vitesse moyenne trajets urbains (km/h) — NN+2-opt transforme km → minutes de trajet. */
+export const AVERAGE_URBAN_SPEED_KMH = 25;
+
 export type PlanningEntryStatus = 'pending' | 'in_progress' | 'done' | 'skipped';
 
 export function sortEntryEtaSlices<T extends EntryEtaSlice>(rows: T[]): T[] {

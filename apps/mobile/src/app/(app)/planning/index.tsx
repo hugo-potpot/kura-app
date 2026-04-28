@@ -8,6 +8,7 @@ import { SyncStatusIndicator } from '@/components/SyncStatusIndicator';
 import { CircularProgressRing } from '@/features/planning/components/CircularProgressRing';
 import { MapToggleSection } from '@/features/planning/components/MapToggleSection';
 import { PlanningCard } from '@/features/planning/components/PlanningCard';
+import { useOptimizePlanning } from '@/features/planning/hooks/useOptimizePlanning';
 import {
   formatEtaSegmentLabel,
   formatVisitClockLabel,
@@ -41,7 +42,10 @@ export default function PlanningScreen(): React.JSX.Element {
     showSkeleton,
     headerDateLabel,
     pins,
+    refetchPlanning,
   } = usePlanning();
+
+  const { optimize, isOptimizing, explanationByEntryId } = useOptimizePlanning(refetchPlanning);
 
   const syncVariant = hasPendingSync ? 'pending' : 'synced';
 
@@ -87,6 +91,38 @@ export default function PlanningScreen(): React.JSX.Element {
           Cette semaine
         </Chip>
       </View>
+
+      {totalVisits > 0 && (
+        <View style={styles.optimizeRow}>
+          <Pressable
+            onPress={() => {
+              void optimize();
+            }}
+            disabled={isOptimizing}
+            style={({ pressed }) => [
+              styles.optimizeBtn,
+              pressed && !isOptimizing && styles.optimizeBtnPressed,
+              isOptimizing && styles.optimizeBtnDisabled,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isOptimizing
+                ? 'Optimisation de la tournée en cours'
+                : 'Optimiser la tournée minimiser les trajets'
+            }
+            accessibilityState={{ disabled: isOptimizing }}
+          >
+            {isOptimizing ? (
+              <ActivityIndicator color="#fff" accessibilityLabel="Calcul en cours" />
+            ) : (
+              <MaterialCommunityIcons name="map-marker-path" size={20} color="#fff" />
+            )}
+            <Text style={styles.optimizeBtnText} maxFontSizeMultiplier={1.5}>
+              {isOptimizing ? 'Optimisation…' : 'Optimiser la tournée'}
+            </Text>
+          </Pressable>
+        </View>
+      )}
 
       <ScrollView
         style={styles.scrollView}
@@ -139,6 +175,8 @@ export default function PlanningScreen(): React.JSX.Element {
               etaMinutesLabel={formatEtaSegmentLabel(v.etaMinutes)}
               status={v.status}
               orderIndex={v.orderIndex}
+              placementExplanation={explanationByEntryId.get(v.entryId) ?? null}
+              addressGeocoded={v.latitude !== null && v.longitude !== null}
             />
           ))}
 
@@ -202,6 +240,32 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   filterChip: { borderRadius: 20 },
+  optimizeRow: {
+    paddingHorizontal: 16,
+    marginBottom: 6,
+  },
+  optimizeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: COLORS.teal,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 22,
+    minHeight: 48,
+  },
+  optimizeBtnPressed: {
+    opacity: 0.9,
+  },
+  optimizeBtnDisabled: {
+    opacity: 0.75,
+  },
+  optimizeBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
   scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: 16 },
   centerPad: { paddingVertical: 24, alignItems: 'center' },
