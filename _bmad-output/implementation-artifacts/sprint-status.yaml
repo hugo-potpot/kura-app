@@ -73,7 +73,7 @@ development_status:
   3-3-attribution-des-patients-aux-idel-isolation-multi-tenant: review
   3-4-recherche-filtrage-liste-des-patients: review
   3-5-archivage-suppression-conformite-rgpd: review
-  3-6-visualisation-des-constantes-graphiques-patient: backlog
+  3-6-visualisation-des-constantes-graphiques-patient: review
   epic-3-retrospective: optional
 
   # ─────────────────────────────────────────────────────────────────────────────

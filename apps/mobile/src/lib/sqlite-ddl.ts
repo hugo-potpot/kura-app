@@ -17,6 +17,21 @@ export const SQLITE_DDL = `
     synced_at INTEGER
   );
 
+  CREATE TABLE IF NOT EXISTS vital_signs (
+    id TEXT PRIMARY KEY,
+    patient_id TEXT NOT NULL,
+    author_id TEXT NOT NULL,
+    measured_at INTEGER NOT NULL,
+    systolic REAL,
+    diastolic REAL,
+    glycemia REAL,
+    weight REAL,
+    temperature REAL,
+    spo2 REAL,
+    created_at INTEGER NOT NULL,
+    synced_at INTEGER
+  );
+
   CREATE TABLE IF NOT EXISTS sync_queue (
     id TEXT PRIMARY KEY,
     entity_type TEXT NOT NULL,

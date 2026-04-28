@@ -6,6 +6,7 @@ export { transmissions } from './transmission-schema';
 export { planningEntries } from './planning-schema';
 export { syncQueue } from './sync-schema';
 export { auditLogs } from './audit-schema';
+export { vitalSigns } from './vital-signs-schema';
 
 // ── PostgreSQL schemas (serveur / Next.js) ──────────────────────────────────
 // La table user PostgreSQL est dans auth-schema (gérée par BetterAuth + champs métier KURA)
@@ -16,3 +17,4 @@ export { transmissionsPg } from './transmission-schema';
 export { planningEntriesPg } from './planning-schema';
 export { syncQueuePg } from './sync-schema';
 export { auditLogsPg } from './audit-schema';
+export { vitalSignsPg } from './vital-signs-schema';
