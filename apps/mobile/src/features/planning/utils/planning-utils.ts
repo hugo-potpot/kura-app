@@ -1,3 +1,5 @@
+import { Linking, Platform } from 'react-native';
+
 /**
  * Clé de date stable pour `planning_entries.date` (SQLite TEXT, format ISO date locale machine).
  */
@@ -60,4 +62,13 @@ export function shortenAddress(address: string, maxLen = 42): string {
   const t = address.trim();
   if (t.length <= maxLen) return t;
   return `${t.slice(0, maxLen - 1)}…`;
+}
+
+/** Ouvre l’app cartes native (story 4.4 — swipe Naviguer). */
+export function openNativeMapsNavigation(address: string): void {
+  const encoded = encodeURIComponent(address.trim());
+  if (encoded.length === 0) return;
+  const url =
+    Platform.OS === 'ios' ? `maps://?daddr=${encoded}` : `geo:0,0?q=${encoded}`;
+  void Linking.openURL(url);
 }

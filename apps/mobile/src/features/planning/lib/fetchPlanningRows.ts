@@ -32,6 +32,7 @@ export async function fetchPlanningVisitsForDate(
     patientFirstName: r.patient.firstName,
     patientLastName: r.patient.lastName,
     addressShort: shortenAddress(r.patient.address),
+    addressFull: r.patient.address.trim(),
     latitude: r.patient.latitude,
     longitude: r.patient.longitude,
     syncedAt: r.entry.syncedAt,

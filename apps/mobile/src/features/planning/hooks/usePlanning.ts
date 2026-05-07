@@ -121,6 +121,7 @@ export function usePlanning(): {
   const pins = useMemo(() => {
     const out: PlanningMapPin[] = [];
     for (const v of visits) {
+      if (v.status === 'skipped') continue;
       if (v.latitude !== null && v.longitude !== null) {
         out.push({
           orderIndex: v.orderIndex,

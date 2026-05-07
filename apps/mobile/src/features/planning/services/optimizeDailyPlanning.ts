@@ -1,12 +1,13 @@
-import { and, eq } from 'drizzle-orm';
-
-import { planningEntries } from '@kura/db';
-
 import type { AppDb } from '@/lib/db';
 
-import { optimizeVisitOrder, type VisitNode } from '../algorithm/tsp-optimizer';
+import {
+  computeEtaSegmentsForPlanningDayOrder,
+  optimizeVisitOrder,
+  type VisitNode,
+} from '../algorithm/tsp-optimizer';
 import { fetchPlanningVisitsForDate } from '../lib/fetchPlanningRows';
 import type { PlanningVisitRow } from '../model/types';
+import { persistManualPlanningOrder } from './persistManualPlanningOrder';
 
 function planningRowsToVisitNodes(rows: readonly PlanningVisitRow[]): VisitNode[] {
   return rows.map((r) => ({
@@ -21,11 +22,15 @@ function planningRowsToVisitNodes(rows: readonly PlanningVisitRow[]): VisitNode[
 }
 
 export interface OptimizeDailyPlanningResult {
-  readonly segmentByEntryId: ReadonlyMap<string, { orderIndex: number; etaMinutes: number; explanationLine: string }>;
+  readonly segmentByEntryId: ReadonlyMap<
+    string,
+    { orderIndex: number; etaMinutes: number | null; explanationLine: string }
+  >;
 }
 
 /**
  * Recalcule NN+2-opt puis persiste `order_index`, `eta_minutes`, `updated_at`, `synced_at=null` (100 % local).
+ * Les entrées `skipped` restent en fin de tournée sans participer à l’optimisation.
  */
 export async function optimizeDailyPlanning(
   db: AppDb,
@@ -39,12 +44,34 @@ export async function optimizeDailyPlanning(
 
   const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
 
-  const segments = optimizeVisitOrder(planningRowsToVisitNodes(rows));
+  const active = rows.filter((r) => r.status !== 'skipped');
+  const skipped = rows
+    .filter((r) => r.status === 'skipped')
+    .sort((a, b) => a.orderIndex - b.orderIndex);
+
+  let fullOrderedIds: string[];
+  if (active.length === 0) {
+    fullOrderedIds = skipped.map((s) => s.entryId);
+  } else {
+    const segmentsOpt = optimizeVisitOrder(planningRowsToVisitNodes(active));
+    const activeIds = [...segmentsOpt]
+      .sort((a, b) => a.orderIndex - b.orderIndex)
+      .map((s) => s.entryId);
+    fullOrderedIds = [...activeIds, ...skipped.map((s) => s.entryId)];
+  }
+
+  await persistManualPlanningOrder(db, idelId, dateKey, fullOrderedIds);
+
+  const refreshed = await fetchPlanningVisitsForDate(db, idelId, dateKey);
   const segmentByEntryId = new Map<
     string,
-    { orderIndex: number; etaMinutes: number; explanationLine: string }
+    { orderIndex: number; etaMinutes: number | null; explanationLine: string }
   >();
-  for (const s of segments) {
+  const finalSegs = computeEtaSegmentsForPlanningDayOrder(
+    [...refreshed].sort((a, b) => a.orderIndex - b.orderIndex),
+    { renumberOrderIndex: false },
+  );
+  for (const s of finalSegs) {
     segmentByEntryId.set(s.entryId, {
       orderIndex: s.orderIndex,
       etaMinutes: s.etaMinutes,
@@ -52,34 +79,13 @@ export async function optimizeDailyPlanning(
     });
   }
 
-  const now = new Date();
-  await db.transaction(async (tx) => {
-    for (const s of segments) {
-      await tx
-        .update(planningEntries)
-        .set({
-          orderIndex: s.orderIndex,
-          etaMinutes: s.etaMinutes,
-          updatedAt: now,
-          syncedAt: null,
-        })
-        .where(
-          and(
-            eq(planningEntries.id, s.entryId),
-            eq(planningEntries.idelId, idelId),
-            eq(planningEntries.date, dateKey),
-          ),
-        );
-    }
-  });
-
   const t1 = typeof performance !== 'undefined' ? performance.now() : Date.now();
   if (__DEV__) {
     const elapsedMs = t1 - t0;
     // NFR-PERF-2 : cible < 5s pour ≤15 patients (calcul + persistance locale)
     // eslint-disable-next-line no-console
     console.info(
-      `[planning.optimize] entries=${segments.length} durationMs=${elapsedMs.toFixed(0)} (NN+2-opt + SQLite)`,
+      `[planning.optimize] entries=${refreshed.length} durationMs=${elapsedMs.toFixed(0)} (NN+2-opt + SQLite)`,
     );
   }
 

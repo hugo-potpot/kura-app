@@ -4,7 +4,7 @@ import { planningEntries } from '@kura/db';
 
 import type { AppDb } from '@/lib/db';
 
-import { computeEtaSegmentsForVisitOrder, type VisitNode } from '../algorithm/tsp-optimizer';
+import { computeEtaSegmentsForPlanningDayOrder, type VisitNode } from '../algorithm/tsp-optimizer';
 import { fetchPlanningVisitsForDate } from '../lib/fetchPlanningRows';
 import type { PlanningVisitRow } from '../model/types';
 
@@ -48,7 +48,7 @@ export async function persistManualPlanningOrder(
     orderedRows.push(hit);
   }
 
-  const segments = computeEtaSegmentsForVisitOrder(planningRowsToVisitNodes(orderedRows));
+  const segments = computeEtaSegmentsForPlanningDayOrder(orderedRows, { renumberOrderIndex: true });
   const segmentByEntry = new Map(segments.map((s) => [s.entryId, s]));
   const now = new Date();
 

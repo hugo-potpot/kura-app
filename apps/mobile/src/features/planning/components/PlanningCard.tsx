@@ -1,6 +1,8 @@
-import { View, StyleSheet, Platform, Pressable } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, TouchableOpacity } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRef } from 'react';
 
 import { COLORS } from '@/theme/kura-theme';
 
@@ -13,35 +15,37 @@ const STATUS_STYLE: Record<
   pending: { opacity: 1 },
   in_progress: { opacity: 1 },
   done: { opacity: 0.72 },
-  skipped: { opacity: 0.65 },
+  skipped: { opacity: 1 },
 };
 
 function badgePaletteForStatus(status: PlanningEntryStatus): { bg: string; text: string } {
   if (status === 'done') return { bg: '#E8F5E9', text: '#2E7D32' };
-  if (status === 'skipped') return { bg: '#F5F5F5', text: '#64748B' };
+  if (status === 'skipped') return { bg: '#FFE0B2', text: '#E65100' };
   return { bg: '#E6F6FF', text: COLORS.primary };
 }
 
 interface PlanningCardProps {
   readonly patientDisplayName: string;
   readonly addressShort: string;
+  readonly addressForNavigation: string;
   readonly estimatedClockLabel: string;
   readonly careTypeLabel: string;
   readonly etaMinutesLabel: string | null;
   readonly status: PlanningEntryStatus;
   readonly orderIndex: number;
-  /** Ligne courte FR37 : pourquoi cette position (après optimiseur local). */
   readonly placementExplanation?: string | null;
   readonly addressGeocoded?: boolean;
-  /** Long press (≥ 300 ms) pour activer le drag — fourni par DraggableFlatList. */
   readonly drag?: () => void;
-  /** Carte en cours de déplacement (animation légère). */
   readonly dragActive?: boolean;
+  readonly swipeEnabled?: boolean;
+  readonly onSwipeAbsent?: () => void;
+  readonly onSwipeNavigate?: (address: string) => void;
 }
 
 export function PlanningCard({
   patientDisplayName,
   addressShort,
+  addressForNavigation,
   estimatedClockLabel,
   careTypeLabel,
   etaMinutesLabel,
@@ -51,15 +55,72 @@ export function PlanningCard({
   addressGeocoded = true,
   drag,
   dragActive = false,
+  swipeEnabled = true,
+  onSwipeAbsent,
+  onSwipeNavigate,
 }: PlanningCardProps): React.JSX.Element {
+  const swipeRef = useRef<Swipeable>(null);
   const st = STATUS_STYLE[status];
   const badgePalette = badgePaletteForStatus(status);
+  const isAbsent = status === 'skipped';
 
   const etaPart = etaMinutesLabel === null ? '' : `, ${etaMinutesLabel}`;
   const geoPart = addressGeocoded ? '' : ', adresse sans coordonnées GPS';
   const placePart =
     placementExplanation !== null && placementExplanation.length > 0 ? `, ${placementExplanation}` : '';
   const accessibilityLabel = `Visite ${orderIndex + 1}, ${patientDisplayName}, ${estimatedClockLabel}, ${careTypeLabel}${etaPart}${geoPart}${placePart}`;
+
+  const closeSwipe = (): void => {
+    swipeRef.current?.close();
+  };
+
+  const openNavigate = (): void => {
+    const addr = addressForNavigation.trim();
+    if (addr.length === 0) return;
+    onSwipeNavigate?.(addr);
+    closeSwipe();
+  };
+
+  const requestAbsent = (): void => {
+    onSwipeAbsent?.();
+    closeSwipe();
+  };
+
+  const renderRightActions = (): React.JSX.Element => (
+    <View style={styles.swipeActions} accessibilityRole="toolbar">
+      <TouchableOpacity
+        style={[styles.swipeBtn, styles.swipeAbsent]}
+        onPress={requestAbsent}
+        accessibilityRole="button"
+        accessibilityLabel="Marquer absent"
+      >
+        <Text style={styles.swipeBtnText} maxFontSizeMultiplier={1.5}>
+          Absent
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.swipeBtn, styles.swipeDeplacer]}
+        disabled
+        accessibilityRole="button"
+        accessibilityLabel="Déplacer, indisponible"
+        accessibilityState={{ disabled: true }}
+      >
+        <Text style={[styles.swipeBtnText, styles.swipeBtnTextMuted]} maxFontSizeMultiplier={1.5}>
+          Déplacer
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.swipeBtn, styles.swipeNaviguer]}
+        onPress={openNavigate}
+        accessibilityRole="button"
+        accessibilityLabel="Naviguer vers le patient"
+      >
+        <Text style={[styles.swipeBtnText, styles.swipeBtnTextLight]} maxFontSizeMultiplier={1.5}>
+          Naviguer
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   const rowInner = (
     <>
@@ -81,7 +142,7 @@ export function PlanningCard({
           </Text>
           <View style={[styles.badge, { backgroundColor: badgePalette.bg }]}>
             <Text style={[styles.badgeText, { color: badgePalette.text }]} maxFontSizeMultiplier={1.5}>
-              {careTypeLabel}
+              {isAbsent ? 'Absent' : careTypeLabel}
             </Text>
           </View>
         </View>
@@ -128,34 +189,92 @@ export function PlanningCard({
     </>
   );
 
-  if (drag === undefined) {
-    return (
-      <View
-        style={[styles.card, { opacity: st.opacity }]}
+  const cardShell = (inner: React.ReactNode): React.JSX.Element => (
+    <View
+      style={[
+        styles.card,
+        { opacity: st.opacity },
+        isAbsent && styles.cardAbsent,
+        dragActive && styles.cardDragging,
+      ]}
+      accessibilityRole="summary"
+      accessibilityLabel={accessibilityLabel}
+    >
+      {inner}
+    </View>
+  );
+
+  const body =
+    drag === undefined ? (
+      cardShell(rowInner)
+    ) : (
+      <Pressable
+        delayLongPress={300}
+        onLongPress={() => {
+          drag();
+        }}
         accessibilityRole="summary"
         accessibilityLabel={accessibilityLabel}
+        accessibilityHint="Maintenir pour réorganiser la tournée"
       >
-        {rowInner}
-      </View>
+        {cardShell(rowInner)}
+      </Pressable>
     );
+
+  const canSwipe = swipeEnabled && onSwipeAbsent !== undefined;
+
+  if (!canSwipe) {
+    return body;
   }
 
   return (
-    <Pressable
-      delayLongPress={300}
-      onLongPress={() => {
-        drag();
-      }}
-  accessibilityRole="summary"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityHint="Maintenir pour réorganiser la tournée"
+    <Swipeable
+      ref={swipeRef}
+      enabled={swipeEnabled}
+      friction={2}
+      renderRightActions={renderRightActions}
+      overshootRight={false}
     >
-      <View style={[styles.card, { opacity: st.opacity }, dragActive && styles.cardDragging]}>{rowInner}</View>
-    </Pressable>
+      {body}
+    </Swipeable>
   );
 }
 
 const styles = StyleSheet.create({
+  swipeActions: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginBottom: 10,
+    borderRadius: 14,
+    overflow: 'hidden',
+    minHeight: 52,
+  },
+  swipeBtn: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    minWidth: 76,
+  },
+  swipeAbsent: {
+    backgroundColor: '#FB8C00',
+  },
+  swipeDeplacer: {
+    backgroundColor: '#B0BEC5',
+  },
+  swipeNaviguer: {
+    backgroundColor: '#3949AB',
+  },
+  swipeBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  swipeBtnTextMuted: {
+    color: 'rgba(255,255,255,0.65)',
+  },
+  swipeBtnTextLight: {
+    color: '#fff',
+  },
   card: {
     flexDirection: 'row',
     backgroundColor: COLORS.white,
@@ -173,6 +292,11 @@ const styles = StyleSheet.create({
       },
       android: { elevation: 2 },
     }),
+  },
+  cardAbsent: {
+    backgroundColor: '#FFF3E0',
+    borderWidth: 1,
+    borderColor: '#FF9800',
   },
   cardDragging: {
     transform: [{ rotate: '2deg' }],

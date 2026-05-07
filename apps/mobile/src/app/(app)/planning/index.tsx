@@ -5,9 +5,17 @@ import {
   Pressable,
   Switch,
 } from 'react-native';
-import { useCallback } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
-import { Text, Chip, Snackbar } from 'react-native-paper';
+import {
+  Text,
+  Chip,
+  Snackbar,
+  FAB,
+  Portal,
+  Dialog,
+  Button,
+} from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link, useFocusEffect } from 'expo-router';
@@ -15,7 +23,10 @@ import { Link, useFocusEffect } from 'expo-router';
 import { SyncStatusIndicator } from '@/components/SyncStatusIndicator';
 import { CircularProgressRing } from '@/features/planning/components/CircularProgressRing';
 import { MapToggleSection } from '@/features/planning/components/MapToggleSection';
+import { UrgencyBottomSheet } from '@/features/planning/components/UrgencyBottomSheet';
 import { PlanningCard } from '@/features/planning/components/PlanningCard';
+import { useAbsentPatient } from '@/features/planning/hooks/useAbsentPatient';
+import { useAddUrgency } from '@/features/planning/hooks/useAddUrgency';
 import { useOptimizePlanning } from '@/features/planning/hooks/useOptimizePlanning';
 import { usePlanningManualMode } from '@/features/planning/hooks/usePlanningManualMode';
 import { useReorderPlanning } from '@/features/planning/hooks/useReorderPlanning';
@@ -28,7 +39,10 @@ import {
 import { useAuthStore } from '@/features/auth/stores/auth-store';
 import type { PlanningVisitRow } from '@/features/planning/model/types';
 import { COLORS } from '@/theme/kura-theme';
-import { DEFAULT_CARE_TYPE_LABEL } from '@/features/planning/utils/planning-utils';
+import {
+  DEFAULT_CARE_TYPE_LABEL,
+  openNativeMapsNavigation,
+} from '@/features/planning/utils/planning-utils';
 
 function PlanningCardSkeleton(): React.JSX.Element {
   return (
@@ -83,6 +97,36 @@ export default function PlanningScreen(): React.JSX.Element {
     preferencesReady: manualPreferencesReady,
   } = usePlanningManualMode();
 
+  const {
+    confirmAndMarkAbsent,
+    absentSnackbarVisible,
+    absentSnackbarMessage,
+    onAbsentUndoPress,
+    onAbsentSnackbarDismiss,
+    absentInfoSnackbarVisible,
+    absentInfoMessage,
+    onAbsentInfoDismiss,
+  } = useAbsentPatient(refetchPlanning);
+
+  const {
+    candidates: urgencyCandidates,
+    loadCandidates: loadUrgencyCandidates,
+    suggestUrgencyInsertion,
+    addUrgency,
+  } = useAddUrgency(refetchPlanning);
+
+  const [confirmAbsentEntryId, setConfirmAbsentEntryId] = useState<string | null>(null);
+  const [urgencyOpen, setUrgencyOpen] = useState(false);
+  const [urgencyFabOpen, setUrgencyFabOpen] = useState(false);
+
+  const visitsRef = useRef(visits);
+  visitsRef.current = visits;
+
+  const absentDialogVisit = useMemo(
+    () => visits.find((x) => x.entryId === confirmAbsentEntryId) ?? null,
+    [visits, confirmAbsentEntryId],
+  );
+
   const syncVariant = hasPendingSync ? 'pending' : 'synced';
 
   const runFirstFocus = useCallback(async (): Promise<void> => {
@@ -120,6 +164,7 @@ export default function PlanningScreen(): React.JSX.Element {
         <PlanningCard
           patientDisplayName={patientDisplayName(v)}
           addressShort={v.addressShort}
+          addressForNavigation={v.addressFull}
           estimatedClockLabel={formatVisitClockLabel(v, sortedEtaSlices)}
           careTypeLabel={DEFAULT_CARE_TYPE_LABEL}
           etaMinutesLabel={formatEtaSegmentLabel(v.etaMinutes)}
@@ -129,6 +174,13 @@ export default function PlanningScreen(): React.JSX.Element {
           addressGeocoded={v.latitude !== null && v.longitude !== null}
           drag={drag}
           dragActive={isActive}
+          swipeEnabled={!isActive}
+          onSwipeAbsent={() => {
+            setConfirmAbsentEntryId(v.entryId);
+          }}
+          onSwipeNavigate={(addr) => {
+            openNativeMapsNavigation(addr);
+          }}
         />
       </ScaleDecorator>
     ),
@@ -290,7 +342,7 @@ export default function PlanningScreen(): React.JSX.Element {
       )}
 
       <Snackbar
-        visible={snackbarVisible}
+        visible={snackbarVisible && !absentSnackbarVisible}
         duration={5000}
         onDismiss={() => {
           onDismissSnackbar();
@@ -313,6 +365,103 @@ export default function PlanningScreen(): React.JSX.Element {
       <Snackbar visible={infoSnackbarVisible} duration={3000} onDismiss={onDismissInfoSnackbar}>
         {infoSnackbarMessage}
       </Snackbar>
+
+      <Snackbar
+        visible={absentSnackbarVisible}
+        duration={5000}
+        onDismiss={onAbsentSnackbarDismiss}
+        action={{
+          label: 'Annuler',
+          accessibilityLabel: 'Annuler le retrait du patient',
+          onPress: () => {
+            void onAbsentUndoPress();
+          },
+        }}
+      >
+        {absentSnackbarMessage}
+      </Snackbar>
+
+      <Snackbar visible={absentInfoSnackbarVisible} duration={3000} onDismiss={onAbsentInfoDismiss}>
+        {absentInfoMessage}
+      </Snackbar>
+
+      <Portal>
+        <Dialog
+          visible={confirmAbsentEntryId !== null}
+          onDismiss={() => {
+            setConfirmAbsentEntryId(null);
+          }}
+        >
+          <Dialog.Title maxFontSizeMultiplier={1.5}>
+            {absentDialogVisit !== null
+              ? `Retirer ${patientDisplayName(absentDialogVisit)} du planning ?`
+              : 'Retirer du planning ?'}
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text maxFontSizeMultiplier={1.5}>
+              Le patient sera marqué absent et les horaires de la tournée seront recalculés.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              onPress={() => {
+                setConfirmAbsentEntryId(null);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              textColor="#C62828"
+              onPress={() => {
+                if (confirmAbsentEntryId !== null && absentDialogVisit !== null) {
+                  void confirmAndMarkAbsent(confirmAbsentEntryId, absentDialogVisit.status);
+                }
+                setConfirmAbsentEntryId(null);
+              }}
+            >
+              Retirer
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      <UrgencyBottomSheet
+        visible={urgencyOpen}
+        onDismiss={() => {
+          setUrgencyOpen(false);
+        }}
+        candidates={urgencyCandidates}
+        onLoadCandidates={loadUrgencyCandidates}
+        visits={visits}
+        suggestInsertion={suggestUrgencyInsertion}
+        onConfirmUrgency={async (patientId, globalInsertIndex) => {
+          await addUrgency(patientId, globalInsertIndex, visitsRef.current);
+        }}
+      />
+
+      {!showSkeleton && (
+        <FAB.Group
+          open={urgencyFabOpen}
+          visible
+          icon={urgencyFabOpen ? 'close' : 'plus'}
+          actions={[
+            {
+              icon: 'ambulance',
+              label: 'Ajouter une urgence',
+              onPress: (): void => {
+                setUrgencyFabOpen(false);
+                setUrgencyOpen(true);
+              },
+            },
+          ]}
+          onStateChange={({ open }): void => {
+            setUrgencyFabOpen(open);
+          }}
+          style={styles.fabGroup}
+          fabStyle={styles.fabFab}
+          color="#fff"
+        />
+      )}
     </View>
   );
 }
@@ -463,5 +612,14 @@ const styles = StyleSheet.create({
     width: '85%',
     borderRadius: 6,
     backgroundColor: '#EEF2F6',
+  },
+  fabGroup: {
+    position: 'absolute',
+    right: 20,
+    bottom: 28,
+  },
+  fabFab: {
+    borderRadius: 16,
+    backgroundColor: '#00897B',
   },
 });

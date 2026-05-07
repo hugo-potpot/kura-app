@@ -1,5 +1,29 @@
 import { DEFAULT_CARE_MINUTES } from '../utils/planning-utils';
-import { computeEtaSegmentsForVisitOrder, optimizeVisitOrder, type VisitNode } from './tsp-optimizer';
+import type { PlanningVisitRow } from '../model/types';
+import {
+  computeEtaSegmentsForPlanningDayOrder,
+  computeEtaSegmentsForVisitOrder,
+  findOptimalInsertionIndex,
+  optimizeVisitOrder,
+  type VisitNode,
+} from './tsp-optimizer';
+
+function visitRow(
+  partial: Partial<PlanningVisitRow> & Pick<PlanningVisitRow, 'entryId' | 'orderIndex' | 'status'>,
+): PlanningVisitRow {
+  return {
+    patientId: `p-${partial.entryId}`,
+    etaMinutes: 30,
+    patientFirstName: 'Jean',
+    patientLastName: 'Dupont',
+    addressShort: 'Rue',
+    addressFull: 'Rue 1',
+    latitude: 45.0,
+    longitude: 4.0,
+    syncedAt: null,
+    ...partial,
+  };
+}
 
 function node(
   id: string,
@@ -78,5 +102,61 @@ describe('computeEtaSegmentsForVisitOrder', () => {
     expect(out.map((s) => s.entryId)).toEqual(['b', 'a']);
     expect(out.map((s) => s.orderIndex)).toEqual([0, 1]);
     expect(out[0]?.etaMinutes).toBeGreaterThanOrEqual(DEFAULT_CARE_MINUTES);
+  });
+});
+
+describe('findOptimalInsertionIndex', () => {
+  it('should return end index when new patient has no coordinates', () => {
+    const entries = [{ latitude: 45, longitude: 4 } as const];
+    const r = findOptimalInsertionIndex({ latitude: null, longitude: null }, entries);
+    expect(r.index).toBe(1);
+    expect(r.costSaving).toBe(0);
+  });
+
+  it('should return 0 for empty entries', () => {
+    const r = findOptimalInsertionIndex({ latitude: 45.75, longitude: 4.83 }, []);
+    expect(r.index).toBe(0);
+  });
+
+  it('should prefer a position among 5 geolocated points', () => {
+    const entries = [
+      { latitude: 45.0, longitude: 4.0 },
+      { latitude: 45.02, longitude: 4.0 },
+      { latitude: 45.04, longitude: 4.0 },
+      { latitude: 45.06, longitude: 4.0 },
+      { latitude: 45.08, longitude: 4.0 },
+    ];
+    const r = findOptimalInsertionIndex({ latitude: 45.03, longitude: 4.0 }, entries);
+    expect(r.index).toBeGreaterThanOrEqual(0);
+    expect(r.index).toBeLessThanOrEqual(entries.length);
+  });
+});
+
+describe('computeEtaSegmentsForPlanningDayOrder', () => {
+  it('should set etaMinutes null for skipped and preserve orderIndex when not renumbering', () => {
+    const seq: PlanningVisitRow[] = [
+      visitRow({ entryId: 'a', orderIndex: 0, status: 'pending' }),
+      visitRow({
+        entryId: 'b',
+        orderIndex: 1,
+        status: 'skipped',
+        latitude: 45.01,
+        longitude: 4.0,
+      }),
+      visitRow({ entryId: 'c', orderIndex: 2, status: 'pending', latitude: 45.02, longitude: 4.0 }),
+    ];
+    const out = computeEtaSegmentsForPlanningDayOrder(seq, { renumberOrderIndex: false });
+    expect(out.find((s) => s.entryId === 'b')?.etaMinutes).toBeNull();
+    expect(out.find((s) => s.entryId === 'a')?.orderIndex).toBe(0);
+    expect(out.find((s) => s.entryId === 'c')?.etaMinutes).not.toBeNull();
+  });
+
+  it('should renumber orderIndex 0..n-1 when renumberOrderIndex is true', () => {
+    const seq: PlanningVisitRow[] = [
+      visitRow({ entryId: 'x', orderIndex: 5, status: 'pending' }),
+      visitRow({ entryId: 'y', orderIndex: 2, status: 'pending', latitude: 45.02, longitude: 4.0 }),
+    ];
+    const out = computeEtaSegmentsForPlanningDayOrder(seq, { renumberOrderIndex: true });
+    expect(out.map((s) => s.orderIndex).sort((a, b) => a - b)).toEqual([0, 1]);
   });
 });

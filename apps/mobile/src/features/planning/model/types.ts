@@ -9,6 +9,8 @@ export interface PlanningVisitRow {
   patientFirstName: string;
   patientLastName: string;
   addressShort: string;
+  /** Adresse complète pour la navigation GPS (swipe). */
+  addressFull: string;
   latitude: number | null;
   longitude: number | null;
   syncedAt: Date | null;
