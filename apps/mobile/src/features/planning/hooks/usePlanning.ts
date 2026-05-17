@@ -6,6 +6,7 @@ import { getDb } from '@/lib/db';
 import { fetchPlanningVisitsForDate } from '../lib/fetchPlanningRows';
 import { seedDevPlanningIfEmpty } from '../lib/devPlanningSeed';
 import type { PlanningVisitRow } from '../model/types';
+import type { PlanningMapPin } from '../utils/planning-map-pins';
 import {
   estimatedVisitClockMinutes,
   formatPlanningDateKey,
@@ -14,8 +15,10 @@ import {
   sumEtaMinutes,
   type EntryEtaSlice,
 } from '../utils/planning-utils';
+import { buildPlanningMapPins } from '../utils/planning-map-pins';
 
 export type { PlanningVisitRow } from '../model/types';
+export type { PlanningMapPin } from '../utils/planning-map-pins';
 
 const DAYS_FR = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 const MONTHS_FR = [
@@ -35,12 +38,6 @@ const MONTHS_FR = [
 
 function formatHeaderDate(d: Date): string {
   return `${DAYS_FR[d.getDay()]} ${d.getDate()} ${MONTHS_FR[d.getMonth()]}`;
-}
-
-export interface PlanningMapPin {
-  orderIndex: number;
-  latitude: number;
-  longitude: number;
 }
 
 export function usePlanning(): {
@@ -118,20 +115,7 @@ export function usePlanning(): {
 
   const hasPendingSync = useMemo(() => visits.some((v) => v.syncedAt === null), [visits]);
 
-  const pins = useMemo(() => {
-    const out: PlanningMapPin[] = [];
-    for (const v of visits) {
-      if (v.status === 'skipped') continue;
-      if (v.latitude !== null && v.longitude !== null) {
-        out.push({
-          orderIndex: v.orderIndex,
-          latitude: v.latitude,
-          longitude: v.longitude,
-        });
-      }
-    }
-    return [...out].sort((a, b) => a.orderIndex - b.orderIndex);
-  }, [visits]);
+  const pins = useMemo(() => buildPlanningMapPins(visits), [visits]);
 
   const showSkeleton = isLoading && slowLoad;
 

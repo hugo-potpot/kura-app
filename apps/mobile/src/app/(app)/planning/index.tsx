@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
+import { FlatList } from 'react-native-gesture-handler';
 import {
   Text,
   Chip,
@@ -119,6 +120,8 @@ export default function PlanningScreen(): React.JSX.Element {
   const [urgencyOpen, setUrgencyOpen] = useState(false);
   const [urgencyFabOpen, setUrgencyFabOpen] = useState(false);
 
+  const listRef = useRef<FlatList<PlanningVisitRow>>(null);
+
   const visitsRef = useRef(visits);
   visitsRef.current = visits;
 
@@ -146,8 +149,43 @@ export default function PlanningScreen(): React.JSX.Element {
 
   useFocusEffect(
     useCallback(() => {
+      refetchPlanning();
       void runFirstFocus();
-    }, [runFirstFocus]),
+    }, [refetchPlanning, runFirstFocus]),
+  );
+
+  const nextNavigableVisit = useMemo(
+    () =>
+      visits.find(
+        (v) =>
+          (v.status === 'pending' || v.status === 'in_progress') &&
+          v.addressFull.trim().length > 0,
+      ),
+    [visits],
+  );
+
+  const navigateToNextVisit = useCallback(() => {
+    if (nextNavigableVisit !== undefined) {
+      openNativeMapsNavigation(nextNavigableVisit.addressFull);
+    }
+  }, [nextNavigableVisit]);
+
+  const onPlanningPinSelect = useCallback(
+    (entryId: string) => {
+      const idx = draggableRows.findIndex((v) => v.entryId === entryId);
+      if (idx < 0) return;
+      const flat = listRef.current;
+      if (flat === null) return;
+      requestAnimationFrame(() => {
+        try {
+          flat.scrollToIndex({ index: idx, animated: true, viewPosition: 0.35 });
+          flat.flashScrollIndicators();
+        } catch {
+          flat.scrollToOffset({ offset: Math.max(0, idx * 140), animated: true });
+        }
+      });
+    },
+    [draggableRows],
   );
 
   const renderPlanningItem = useCallback(
@@ -189,7 +227,12 @@ export default function PlanningScreen(): React.JSX.Element {
 
   const listHeader = (
     <>
-      <MapToggleSection pins={pins} />
+      <MapToggleSection
+        pins={pins}
+        onPinSelect={onPlanningPinSelect}
+        onNavigateNext={navigateToNextVisit}
+        canNavigateNext={nextNavigableVisit !== undefined}
+      />
 
       <View style={styles.filterRow}>
         <Chip selected style={styles.filterChip} compact>
@@ -322,6 +365,7 @@ export default function PlanningScreen(): React.JSX.Element {
 
       {!showSkeleton && visits.length > 0 && (
         <DraggableFlatList
+          ref={listRef}
           containerStyle={{ flex: 1 }}
           contentContainerStyle={styles.draggableScrollContent}
           data={draggableRows}
@@ -338,6 +382,12 @@ export default function PlanningScreen(): React.JSX.Element {
           }}
           renderItem={renderPlanningItem}
           ListHeaderComponent={listHeader}
+          onScrollToIndexFailed={({ index }) => {
+            listRef.current?.scrollToOffset({
+              offset: Math.max(0, index * 140),
+              animated: true,
+            });
+          }}
         />
       )}
 

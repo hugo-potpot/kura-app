@@ -178,6 +178,16 @@ export function PlanningCard({
           </View>
         )}
       </View>
+      {onSwipeNavigate !== undefined && addressForNavigation.trim().length > 0 && (
+        <Pressable
+          onPress={openNavigate}
+          style={({ pressed }) => [styles.inlineNavBtn, pressed && styles.inlineNavBtnPressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Naviguer vers le patient"
+        >
+          <MaterialCommunityIcons name="navigation-variant" size={22} color={COLORS.primary} />
+        </Pressable>
+      )}
       {(status === 'done' || status === 'in_progress') && (
         <MaterialCommunityIcons
           name={status === 'done' ? 'check-circle' : 'progress-clock'}
@@ -396,4 +406,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   trailingIcon: { marginLeft: 4 },
+  inlineNavBtn: {
+    minWidth: 48,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
+  },
+  inlineNavBtnPressed: {
+    opacity: 0.8,
+  },
 });

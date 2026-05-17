@@ -11,21 +11,25 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import {
+  mapPinAccessibilityLabel,
+  pinColorForStatus,
+  type PlanningMapPin,
+} from '@/features/planning/utils/planning-map-pins';
 import { COLORS } from '@/theme/kura-theme';
 
 const STORAGE_KEY = '@kura/planning_map_section_expanded';
 
-export interface MapVisitPin {
-  orderIndex: number;
-  latitude: number;
-  longitude: number;
-}
+export type { PlanningMapPin } from '@/features/planning/utils/planning-map-pins';
 
 interface MapToggleSectionProps {
-  pins: MapVisitPin[];
+  pins: PlanningMapPin[];
+  onPinSelect?: (entryId: string) => void;
+  onNavigateNext?: () => void;
+  canNavigateNext?: boolean;
 }
 
-function computeRegion(pins: MapVisitPin[]): {
+function computeRegion(pins: PlanningMapPin[]): {
   latitude: number;
   longitude: number;
   latitudeDelta: number;
@@ -64,7 +68,12 @@ function computeRegion(pins: MapVisitPin[]): {
 /**
  * C7 — section carte repliable ; préférence UI persistée (pas de secrets).
  */
-export function MapToggleSection({ pins }: MapToggleSectionProps): React.JSX.Element {
+export function MapToggleSection({
+  pins,
+  onPinSelect,
+  onNavigateNext,
+  canNavigateNext = false,
+}: MapToggleSectionProps): React.JSX.Element {
   const [expanded, setExpanded] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [mapReady, setMapReady] = useState(false);
@@ -97,6 +106,7 @@ export function MapToggleSection({ pins }: MapToggleSectionProps): React.JSX.Ele
   const region = computeRegion(pins);
   const coords = pins.map((p) => ({ latitude: p.latitude, longitude: p.longitude }));
   const showPolyline = coords.length >= 2;
+  const showNextNav = !isWeb && onNavigateNext !== undefined;
 
   return (
     <View style={styles.outer}>
@@ -130,35 +140,81 @@ export function MapToggleSection({ pins }: MapToggleSectionProps): React.JSX.Ele
             <StaticPlaceholder title="Aucune coordonnée GPS pour tracer la carte aujourd'hui" />
           ) : (
             <>
-              <MapView
-                style={styles.map}
-                initialRegion={region}
-                onMapReady={() => setMapReady(true)}
-                accessibilityLabel="Carte de la tournée du jour"
-              >
-                {pins.map((p) => (
-                  <Marker
-                    key={`${p.orderIndex}-${p.latitude}-${p.longitude}`}
-                    coordinate={{ latitude: p.latitude, longitude: p.longitude }}
-                    title={`Étape ${p.orderIndex + 1}`}
-                    accessibilityLabel={`Patient étape ${p.orderIndex + 1}`}
+              {showNextNav && (
+                <View style={styles.mapToolbar}>
+                  <Pressable
+                    onPress={() => {
+                      onNavigateNext?.();
+                    }}
+                    disabled={!canNavigateNext}
+                    style={({ pressed }) => [
+                      styles.navNextBtn,
+                      pressed && canNavigateNext && styles.navNextBtnPressed,
+                      !canNavigateNext && styles.navNextBtnDisabled,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: !canNavigateNext }}
+                    accessibilityLabel="Naviguer vers la prochaine visite à faire"
                   >
-                    <View style={styles.pinBubble}>
-                      <Text style={styles.pinText} maxFontSizeMultiplier={1.5}>
-                        {p.orderIndex + 1}
-                      </Text>
-                    </View>
-                  </Marker>
-                ))}
-                {showPolyline && (
-                  <Polyline coordinates={coords} strokeColor={COLORS.teal} strokeWidth={3} />
-                )}
-              </MapView>
-              {!mapReady && (
-                <View style={styles.loaderOverlay}>
-                  <ActivityIndicator color={COLORS.teal} />
+                    <MaterialCommunityIcons
+                      name="navigation-variant"
+                      size={22}
+                      color={canNavigateNext ? COLORS.primary : COLORS.textMuted}
+                    />
+                    <Text
+                      style={[
+                        styles.navNextLabel,
+                        !canNavigateNext && styles.navNextLabelDisabled,
+                      ]}
+                      maxFontSizeMultiplier={1.5}
+                    >
+                      Naviguer vers le prochain
+                    </Text>
+                  </Pressable>
                 </View>
               )}
+              <View style={styles.mapWrap}>
+                <MapView
+                  style={styles.mapFill}
+                  initialRegion={region}
+                  onMapReady={() => setMapReady(true)}
+                  accessibilityLabel="Carte de la tournée du jour"
+                >
+                  {pins.map((p) => (
+                    <Marker
+                      key={p.entryId}
+                      coordinate={{ latitude: p.latitude, longitude: p.longitude }}
+                      title={`Étape ${p.orderIndex + 1}`}
+                      tracksViewChanges={false}
+                      accessibilityLabel={mapPinAccessibilityLabel(p.orderIndex, p.status)}
+                      onPress={() => {
+                        onPinSelect?.(p.entryId);
+                      }}
+                    >
+                      <View
+                        style={[styles.pinBubble, { backgroundColor: pinColorForStatus(p.status) }]}
+                      >
+                        <Text style={styles.pinText} maxFontSizeMultiplier={1.5}>
+                          {p.orderIndex + 1}
+                        </Text>
+                      </View>
+                    </Marker>
+                  ))}
+                  {showPolyline && (
+                    <Polyline
+                      coordinates={coords}
+                      strokeColor={COLORS.primary}
+                      strokeWidth={2}
+                      lineDashPattern={[8, 6]}
+                    />
+                  )}
+                </MapView>
+                {!mapReady && (
+                  <View style={styles.loaderOverlay}>
+                    <ActivityIndicator color={COLORS.teal} />
+                  </View>
+                )}
+              </View>
             </>
           )}
         </View>
@@ -214,9 +270,38 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#D1ECFA',
     marginTop: 4,
+    flexDirection: 'column',
   },
-  map: {
+  mapWrap: {
+    flex: 1,
+    position: 'relative',
+  },
+  mapFill: {
     ...StyleSheet.absoluteFillObject,
+  },
+  mapToolbar: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(15,23,42,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.88)',
+  },
+  navNextBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 48,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  navNextBtnPressed: { opacity: 0.85 },
+  navNextBtnDisabled: { opacity: 0.55 },
+  navNextLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  navNextLabelDisabled: {
+    color: COLORS.textMuted,
   },
   placeholder: {
     flex: 1,
@@ -243,13 +328,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(243,250,255,0.6)',
   },
   pinBubble: {
-    backgroundColor: COLORS.teal,
     borderRadius: 14,
     minWidth: 28,
     minHeight: 28,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.95)',
   },
   pinText: {
     color: '#fff',

@@ -1,15 +1,36 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 /**
  * Base HTTP de l'app Next (origine seule, sans /api/v1).
  * Les chemins passés à apiClient commencent déjà par /api/v1/... ou /api/auth/...
  * Si EXPO_PUBLIC_API_URL se termine par /api/v1 (ancienne doc), on le retire pour éviter
  * des URLs dupliquées du type .../api/v1/api/v1/patients (404 silencieux côté hooks).
+ *
+ * Sur émulateur Android, localhost = la VM, pas le PC : en dev on pointe vers 10.0.2.2 (alias hôte).
  */
 export function getApiBaseUrl(): string {
-  const raw = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+  let raw = process.env['EXPO_PUBLIC_API_URL'] ?? 'http://localhost:3000';
+  raw = raw.trim();
+
+  if (
+    typeof __DEV__ !== 'undefined' &&
+    __DEV__ &&
+    Platform.OS === 'android'
+  ) {
+    try {
+      const withProto = raw.includes('://') ? raw : `http://${raw}`;
+      const u = new URL(withProto);
+      if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+        u.hostname = '10.0.2.2';
+        raw = `${u.protocol}//${u.host}${u.pathname === '/' ? '' : u.pathname}`;
+      }
+    } catch {
+      // garder raw tel quel
+    }
+  }
+
   return raw
-    .trim()
     .replace(/\/+$/, '')
     .replace(/\/api\/v1$/i, '')
     .replace(/\/api$/i, '');

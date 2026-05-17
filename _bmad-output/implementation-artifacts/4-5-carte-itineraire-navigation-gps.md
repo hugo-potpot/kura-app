@@ -1,6 +1,6 @@
 # Story 4.5 : Carte Itinéraire & Navigation GPS
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note : validation optionnelle via validate-create-story avant dev-story. -->
 
@@ -51,19 +51,19 @@ afin de me repérer rapidement et d’aller chez le prochain patient sans fricti
 
 ## Tâches / sous-tâches
 
-- [ ] Étendre le modèle des pins dans `usePlanning.ts` : inclure `entryId`, `status`, et **ne plus exclure** les entrées `skipped` pour l’affichage carte (tout en gardant la règle métier : pas de pin sans coords).  
-- [ ] Mettre à jour `MapVisitPin` / `PlanningMapPin` — exporter depuis un seul endroit pour éviter la divergence (`MapToggleSection.tsx` vs hook).  
-- [ ] `MapToggleSection` :  
+- [x] Étendre le modèle des pins dans `usePlanning.ts` : inclure `entryId`, `status`, et **ne plus exclure** les entrées `skipped` pour l’affichage carte (tout en gardant la règle métier : pas de pin sans coords).  
+- [x] Mettre à jour `MapVisitPin` / `PlanningMapPin` — exporter depuis un seul endroit pour éviter la divergence (`MapToggleSection.tsx` vs hook).  
+- [x] `MapToggleSection` :  
   - couleur de bulle pin par `status` (palette alignée UX : indigo / vert / orange absent) ;  
   - `Polyline` avec `lineDashPattern` (ex. `[8, 6]`) et `strokeColor` conforme spec ;  
   - `onMarkerPress` → callback `onPinSelect(entryId: string)` fourni par la page.  
-- [ ] `planning/index.tsx` : `useRef` sur `DraggableFlatList`, `scrollToIndex` / `flashScrollIndicators` après sélection pin ; gérer le cas « index hors plage » / liste en cours de réordonnancement.  
-- [ ] Option UX : **FAB** action « Naviguer » vers la **première visite `pending` ou `in_progress`** du jour (adresse `addressFull`) — ou bouton « Naviguer prochain » dans l’entête de carte ; respecter touch target ≥ 48 px.  
-- [ ] `PlanningCard` : si absent, ajouter **bouton ou icône** « Naviguer » visible sans swipe uniquement (selon maquette) — aujourd’hui la navigation est surtout dans le swipe ; vérifier critère epic « bouton dans la PlanningCard ».  
-- [ ] Tests unitaires :  
+- [x] `planning/index.tsx` : `useRef` sur `DraggableFlatList`, `scrollToIndex` / `flashScrollIndicators` après sélection pin ; gérer le cas « index hors plage » / liste en cours de réordonnancement.  
+- [x] Option UX : **FAB** action « Naviguer » vers la **première visite `pending` ou `in_progress`** du jour (adresse `addressFull`) — ou bouton « Naviguer prochain » dans l’entête de carte ; respecter touch target ≥ 48 px.  
+- [x] `PlanningCard` : si absent, ajouter **bouton ou icône** « Naviguer » visible sans swipe uniquement (selon maquette) — aujourd’hui la navigation est surtout dans le swipe ; vérifier critère epic « bouton dans la PlanningCard ».  
+- [x] Tests unitaires :  
   - construction des pins (ordre, inclusion `skipped`, exclusion sans coords) — fichier dédié ou tests `usePlanning` avec mock DB ;  
   - pure function `pinColorForStatus` / tri des coordonnées pour polyline si extraite.  
-- [ ] FR35 : tracer où le passage à `done` est écrit (transmission / fin de visite) ; si absent du codebase, **documenter** une sous-tâche follow-up ou implémenter un `refetchPlanning` sur `useFocusEffect` du planning + à la fin du flux de transmission minimal.
+- [x] FR35 : tracer où le passage à `done` est écrit (transmission / fin de visite) ; si absent du codebase, **documenter** une sous-tâche follow-up ou implémenter un `refetchPlanning` sur `useFocusEffect` du planning + à la fin du flux de transmission minimal.
 
 ## Notes de développement
 
@@ -123,8 +123,8 @@ Vérifier sur appareil réel : `maps://` et `geo:` peuvent échouer sur simulate
 
 ## Statut de fin de workflow
 
-- **ready-for-dev** — Fichier story généré ; analyse contexte (epic, UX, code existant, sprint) terminée.  
-- Note : exécuter optionnellement `validate-create-story` / checklist `_bmad/bmm/workflows/4-implementation/create-story/checklist.md` avant `dev-story`.
+- **review** — Implémentation terminée (`dev-story` 2026-05-14) ; prochain pas : flux `code-review`.  
+- Note : FR35 MVP = `refetchPlanning()` lors du focus écran planning (Epic 5 / transmission hors scope pour événements dédiés).
 
 ---
 
@@ -132,14 +132,29 @@ Vérifier sur appareil réel : `maps://` et `geo:` peuvent échouer sur simulate
 
 ### Agent Model Used
 
-_(à compléter par l’agent dev-story.)_
+Assistant Cursor — exécution workflow BMAD dev-story (2026-05-14).
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- `PlanningMapPin` unifié (`planning-map-pins.ts`) : `buildPlanningMapPins`, `pinColorForStatus`, `mapPinAccessibilityLabel`; `usePlanning` + `MapToggleSection` alignés.
+- Carte native : pins indigo / vert / orange selon statut ; polyline tirets `[8, 6]`, contour indigo ; absents géolocalisés inclus dans l’ordre `order_index`.
+- Liste : sélection pin → `scrollToIndex` + fallback `scrollToOffset` / `onScrollToIndexFailed` ; toolbar carte « Naviguer vers le prochain » (`pending`|`in_progress` + `openNativeMapsNavigation`).
+- `PlanningCard` : icône navigation 48 px sans passer par le swipe ; swipe inchangé.
+- FR35 : `useFocusEffect` déclenche `refetchPlanning()` puis optimiseur focus existant.
+- Tests `planning-map-pins.test.ts` (Jest) : tous les tests planning passent localement (`pnpm exec jest src/features/planning`).
+
 ### File List
+
+- `apps/mobile/src/features/planning/utils/planning-map-pins.ts`
+- `apps/mobile/src/features/planning/utils/planning-map-pins.test.ts`
+- `apps/mobile/src/features/planning/hooks/usePlanning.ts`
+- `apps/mobile/src/features/planning/components/MapToggleSection.tsx`
+- `apps/mobile/src/features/planning/components/PlanningCard.tsx`
+- `apps/mobile/src/app/(app)/planning/index.tsx`
 
 ### Change Log
 
 - 2026-05-07 : Création story 4.5 (workflow create-story) — statut sprint passé à `ready-for-dev`.
+- 2026-05-14 : Implémentations carte / navigation GPS / tests (`dev-story`).
