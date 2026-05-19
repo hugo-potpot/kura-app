@@ -1,4 +1,5 @@
 import type { PlanningVisitRow } from '../model/types';
+import type { PriorityZone } from '../hooks/planning-preferences-schema';
 import {
   AVERAGE_URBAN_SPEED_KMH,
   DEFAULT_CARE_MINUTES,
@@ -6,7 +7,30 @@ import {
 } from '../utils/planning-utils';
 import { type GeoPoint, haversineKm, travelMinutesFromKm } from './haversine';
 
-/** Point géo minimal pour le calcul d’insertion optimale (story 4.4). */
+/** Préférences temporelles et géographiques injectées dans les calculs ETA / optimisation. */
+export interface PlanningDayTimelinePrefs {
+  readonly dayStartMinutes?: number;
+  readonly pauseStartMinutes?: number;
+  readonly lunchDurationMinutes?: number;
+  readonly priorityZones?: readonly PriorityZone[];
+}
+
+/** Facteur de réduction de distance effectif pour les noeuds en zone prioritaire (NN heuristique). */
+const ZONE_BOOST_FACTOR = 0.7;
+
+function isInPriorityZone(
+  lat: number,
+  lng: number,
+  zones: readonly PriorityZone[],
+): boolean {
+  for (const z of zones) {
+    const distKm = haversineKm({ latitude: lat, longitude: lng }, { latitude: z.lat, longitude: z.lng });
+    if (distKm <= z.radiusKm) return true;
+  }
+  return false;
+}
+
+/** Point géo minimal pour le calcul d'insertion optimale (story 4.4). */
 export interface InsertionGeoCoords {
   readonly latitude: number | null;
   readonly longitude: number | null;
@@ -32,7 +56,7 @@ function insertionDistKm(a: InsertionGeoCoords, b: InsertionGeoCoords): number {
 }
 
 /**
- * Position d’insertion à coût marginal minimal (dist(prev→new) + dist(new→next) − dist(prev→next)).
+ * Position d'insertion à coût marginal minimal (dist(prev→new) + dist(new→next) − dist(prev→next)).
  * Patient sans coordonnées : fin de liste (comportement métier 4.4).
  */
 export function findOptimalInsertionIndex(
@@ -138,7 +162,7 @@ function geoPathKm(perm: readonly number[], geo: readonly VisitNode[], start: Ge
   return cost;
 }
 
-/** 2-opt sur la permutation (`perm` liste d’indices dans `geo`). Borne itérations pour Hermes/NFR perf. */
+/** 2-opt sur la permutation (`perm` liste d'indices dans `geo`). Borne itérations pour Hermes/NFR perf. */
 function twoOptImprove(
   perm: number[],
   geo: readonly VisitNode[],
@@ -183,6 +207,7 @@ function twoOptImprove(
  */
 export function computeEtaSegmentsForVisitOrder(
   orderedVisits: readonly VisitNode[],
+  prefs?: PlanningDayTimelinePrefs,
 ): OptimizedSegment[] {
   if (orderedVisits.length === 0) return [];
 
@@ -198,10 +223,15 @@ export function computeEtaSegmentsForVisitOrder(
     }));
   }
 
+  const dayStartMinutes = prefs?.dayStartMinutes ?? PLANNING_DAY_START_MINUTES;
+  const pauseStartMinutes = prefs?.pauseStartMinutes ?? 12 * 60 + 30;
+  const lunchDurationMinutes = prefs?.lunchDurationMinutes ?? 0;
+
   const start = centroidOf(geo.map((g) => ({ latitude: g.latitude, longitude: g.longitude })));
   let prevGeoPoint: GeoPoint | null = null;
   const out: OptimizedSegment[] = [];
-  let cumClock = PLANNING_DAY_START_MINUTES;
+  let cumClock = dayStartMinutes;
+  let lunchInserted = false;
 
   for (let i = 0; i < orderedVisits.length; i += 1) {
     const v = orderedVisits[i]!;
@@ -218,6 +248,12 @@ export function computeEtaSegmentsForVisitOrder(
 
     const travelMin = travelMinutesFromKm(travelKm, AVERAGE_URBAN_SPEED_KMH);
     const etaMinutes = travelMin + DEFAULT_CARE_MINUTES;
+
+    // Injection de la pause déjeuner : si le cumul atteint le créneau de pause avant cette visite
+    if (!lunchInserted && lunchDurationMinutes > 0 && cumClock >= pauseStartMinutes) {
+      cumClock += lunchDurationMinutes;
+      lunchInserted = true;
+    }
 
     const arrivalBeforeNoon = cumClock < 12 * 60;
     cumClock += etaMinutes;
@@ -247,20 +283,30 @@ export function computeEtaSegmentsForVisitOrder(
   return out;
 }
 
-function nearestNeighborOrder(geo: readonly VisitNode[], start: GeoPoint): number[] {
+function nearestNeighborOrder(
+  geo: readonly VisitNode[],
+  start: GeoPoint,
+  priorityZones: readonly PriorityZone[] = [],
+): number[] {
   const unvisited = new Set<number>(Array.from({ length: geo.length }, (_, i) => i));
   const order: number[] = [];
   let currentPoint: GeoPoint = start;
 
   while (unvisited.size > 0) {
     let pick: number | null = null;
-    let bestKm = Infinity;
+    let bestEffectiveKm = Infinity;
     for (const idx of unvisited) {
       const g = geo[idx];
       if (g === undefined || !isGeo(g)) continue;
       const d = haversineKm(currentPoint, g);
-      if (pick === null || d < bestKm - 1e-9 || (Math.abs(d - bestKm) < 1e-9 && idx < pick)) {
-        bestKm = d;
+      const inZone = priorityZones.length > 0 && isInPriorityZone(g.latitude, g.longitude, priorityZones);
+      const effectiveKm = inZone ? d * ZONE_BOOST_FACTOR : d;
+      if (
+        pick === null ||
+        effectiveKm < bestEffectiveKm - 1e-9 ||
+        (Math.abs(effectiveKm - bestEffectiveKm) < 1e-9 && idx < pick)
+      ) {
+        bestEffectiveKm = effectiveKm;
         pick = idx;
       }
     }
@@ -287,8 +333,12 @@ function sortNoGeoStable(nodes: VisitNode[]): VisitNode[] {
  * Nearest-neighbour depuis le centre géographique des visites, puis 2-opt sur le chemin ouvert.
  * Patients sans coordonnées : fin de tournée, ordre stable (nom + ancien index).
  * `etaMinutes` par entrée = trajet vers le patient + `DEFAULT_CARE_MINUTES` (schéma inchangé).
+ * Accepte des `prefs` optionnelles pour l'heure de début, la pause déjeuner et les zones prioritaires.
  */
-export function optimizeVisitOrder(visits: readonly VisitNode[]): OptimizedSegment[] {
+export function optimizeVisitOrder(
+  visits: readonly VisitNode[],
+  prefs?: PlanningDayTimelinePrefs,
+): OptimizedSegment[] {
   if (visits.length === 0) return [];
 
   const geo = visits.filter(isGeo);
@@ -302,12 +352,17 @@ export function optimizeVisitOrder(visits: readonly VisitNode[]): OptimizedSegme
       etaMinutes: DEFAULT_CARE_MINUTES,
       travelMinutes: 0,
       explanationLine:
-        'Adresse non géolocalisée — ordre conservé en fin de journée (pas d’optimisation trajet).',
+        "Adresse non géolocalisée — ordre conservé en fin de journée (pas d'optimisation trajet).",
     }));
   }
 
+  const dayStartMinutes = prefs?.dayStartMinutes ?? PLANNING_DAY_START_MINUTES;
+  const pauseStartMinutes = prefs?.pauseStartMinutes ?? 12 * 60 + 30;
+  const lunchDurationMinutes = prefs?.lunchDurationMinutes ?? 0;
+  const priorityZones = prefs?.priorityZones ?? [];
+
   const start = centroidOf(geo.map((g) => ({ latitude: g.latitude, longitude: g.longitude })));
-  let perm = nearestNeighborOrder(geo, start);
+  let perm = nearestNeighborOrder(geo, start, priorityZones);
   if (perm.length >= 3) {
     perm = twoOptImprove(perm, geo, start);
   }
@@ -320,7 +375,8 @@ export function optimizeVisitOrder(visits: readonly VisitNode[]): OptimizedSegme
 
   let prevGeoPoint: GeoPoint | null = null;
   const out: OptimizedSegment[] = [];
-  let cumClock = PLANNING_DAY_START_MINUTES;
+  let cumClock = dayStartMinutes;
+  let lunchInserted = false;
 
   for (let i = 0; i < fullOrder.length; i += 1) {
     const v = fullOrder[i]!;
@@ -337,6 +393,12 @@ export function optimizeVisitOrder(visits: readonly VisitNode[]): OptimizedSegme
 
     const travelMin = travelMinutesFromKm(travelKm, AVERAGE_URBAN_SPEED_KMH);
     const etaMinutes = travelMin + DEFAULT_CARE_MINUTES;
+
+    // Injection pause déjeuner avant cette visite si le créneau est atteint
+    if (!lunchInserted && lunchDurationMinutes > 0 && cumClock >= pauseStartMinutes) {
+      cumClock += lunchDurationMinutes;
+      lunchInserted = true;
+    }
 
     const arrivalBeforeNoon = cumClock < 12 * 60;
     cumClock += etaMinutes;
@@ -387,15 +449,21 @@ function patientShortLabelFromRow(v: PlanningVisitRow): string {
 }
 
 /**
- * ETA journée en respectant `skipped` (hors chaîne de trajets) et l’ordre courant.
+ * ETA journée en respectant `skipped` (hors chaîne de trajets) et l'ordre courant.
  * `renumberOrderIndex: true` → positions 0…n-1 selon la séquence fournie (réorganisation manuelle).
+ * `prefs` permet de personnaliser l'heure de début et d'injecter la pause déjeuner.
  */
 export function computeEtaSegmentsForPlanningDayOrder(
   visitSequenceInOrder: readonly PlanningVisitRow[],
-  options?: { renumberOrderIndex?: boolean },
+  options?: { renumberOrderIndex?: boolean; prefs?: PlanningDayTimelinePrefs },
 ): OptimizedSegment[] {
   const renumber = options?.renumberOrderIndex ?? false;
+  const prefs = options?.prefs;
   if (visitSequenceInOrder.length === 0) return [];
+
+  const dayStartMinutes = prefs?.dayStartMinutes ?? PLANNING_DAY_START_MINUTES;
+  const pauseStartMinutes = prefs?.pauseStartMinutes ?? 12 * 60 + 30;
+  const lunchDurationMinutes = prefs?.lunchDurationMinutes ?? 0;
 
   const geoForStart: GeoPoint[] = [];
   for (const r of visitSequenceInOrder) {
@@ -410,7 +478,8 @@ export function computeEtaSegmentsForPlanningDayOrder(
 
   let prevGeoPoint: GeoPoint | null = null;
   const out: OptimizedSegment[] = [];
-  let cumClock = PLANNING_DAY_START_MINUTES;
+  let cumClock = dayStartMinutes;
+  let lunchInserted = false;
 
   for (let i = 0; i < visitSequenceInOrder.length; i += 1) {
     const v = visitSequenceInOrder[i]!;
@@ -439,6 +508,12 @@ export function computeEtaSegmentsForPlanningDayOrder(
 
     const travelMin = travelMinutesFromKm(travelKm, AVERAGE_URBAN_SPEED_KMH);
     const etaMinutes = travelMin + DEFAULT_CARE_MINUTES;
+
+    // Injection pause déjeuner avant cette visite si le créneau est atteint
+    if (!lunchInserted && lunchDurationMinutes > 0 && cumClock >= pauseStartMinutes) {
+      cumClock += lunchDurationMinutes;
+      lunchInserted = true;
+    }
 
     const arrivalBeforeNoon = cumClock < 12 * 60;
     cumClock += etaMinutes;

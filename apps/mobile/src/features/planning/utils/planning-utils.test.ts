@@ -14,13 +14,23 @@ describe('planning-utils', () => {
     expect(formatPlanningDateKey(d)).toBe('2026-04-28');
   });
 
-  it('calcule l’heure estimée avec créneau 08:00 + cumul eta précédentes', () => {
+  it("calcule l'heure estimee avec creneau 08h + cumul eta precedentes", () => {
     const sorted = sortEntryEtaSlices([
       { orderIndex: 0, etaMinutes: 15 },
       { orderIndex: 1, etaMinutes: 10 },
     ]);
     expect(estimatedVisitClockMinutes(0, sorted)).toBe(PLANNING_DAY_START_MINUTES);
     expect(estimatedVisitClockMinutes(1, sorted)).toBe(PLANNING_DAY_START_MINUTES + 15);
+  });
+
+  it('utilise le dayStartMinutes personnalise (preference)', () => {
+    const sorted = sortEntryEtaSlices([
+      { orderIndex: 0, etaMinutes: 20 },
+      { orderIndex: 1, etaMinutes: 10 },
+    ]);
+    const customStart = 7 * 60 + 30; // 07:30
+    expect(estimatedVisitClockMinutes(0, sorted, customStart)).toBe(customStart);
+    expect(estimatedVisitClockMinutes(1, sorted, customStart)).toBe(customStart + 20);
   });
 
   it('minutesToClockLabel formate correctement', () => {
@@ -31,7 +41,7 @@ describe('planning-utils', () => {
     expect(sumEtaMinutes([{ etaMinutes: 10 }, { etaMinutes: null }])).toBe(10);
   });
 
-  it('shortenAddress tronque les longues chaînes', () => {
+  it('shortenAddress tronque les longues chaines', () => {
     const long = `${'x'.repeat(50)}, ville`;
     expect(shortenAddress(long, 10).length).toBeLessThanOrEqual(11);
   });

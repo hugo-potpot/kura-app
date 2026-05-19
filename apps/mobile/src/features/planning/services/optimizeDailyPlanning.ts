@@ -3,6 +3,7 @@ import type { AppDb } from '@/lib/db';
 import {
   computeEtaSegmentsForPlanningDayOrder,
   optimizeVisitOrder,
+  type PlanningDayTimelinePrefs,
   type VisitNode,
 } from '../algorithm/tsp-optimizer';
 import { fetchPlanningVisitsForDate } from '../lib/fetchPlanningRows';
@@ -36,6 +37,7 @@ export async function optimizeDailyPlanning(
   db: AppDb,
   idelId: string,
   dateKey: string,
+  prefs?: PlanningDayTimelinePrefs,
 ): Promise<OptimizeDailyPlanningResult> {
   const rows = await fetchPlanningVisitsForDate(db, idelId, dateKey);
   if (rows.length === 0) {
@@ -53,7 +55,7 @@ export async function optimizeDailyPlanning(
   if (active.length === 0) {
     fullOrderedIds = skipped.map((s) => s.entryId);
   } else {
-    const segmentsOpt = optimizeVisitOrder(planningRowsToVisitNodes(active));
+    const segmentsOpt = optimizeVisitOrder(planningRowsToVisitNodes(active), prefs);
     const activeIds = [...segmentsOpt]
       .sort((a, b) => a.orderIndex - b.orderIndex)
       .map((s) => s.entryId);
@@ -69,7 +71,7 @@ export async function optimizeDailyPlanning(
   >();
   const finalSegs = computeEtaSegmentsForPlanningDayOrder(
     [...refreshed].sort((a, b) => a.orderIndex - b.orderIndex),
-    { renumberOrderIndex: false },
+    { renumberOrderIndex: false, prefs },
   );
   for (const s of finalSegs) {
     segmentByEntryId.set(s.entryId, {

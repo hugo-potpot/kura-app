@@ -6,6 +6,7 @@ import { getDb } from '@/lib/db';
 import { optimizeDailyPlanning } from '../services/optimizeDailyPlanning';
 import { usePlanningUxSession } from '../stores/planning-ux-session';
 import { formatPlanningDateKey } from '../utils/planning-utils';
+import { usePlanningPreferences } from './usePlanningPreferences';
 
 export function useOptimizePlanning(onComplete: () => void): {
   optimize: () => Promise<void>;
@@ -19,6 +20,7 @@ export function useOptimizePlanning(onComplete: () => void): {
   explanationByEntryId: ReadonlyMap<string, string>;
 } {
   const userId = useAuthStore((s) => s.user?.id ?? null);
+  const { preferences } = usePlanningPreferences();
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [explanationByEntryId, setExplanationByEntryId] = useState<Map<string, string>>(() => new Map());
 
@@ -26,7 +28,12 @@ export function useOptimizePlanning(onComplete: () => void): {
     if (userId === null) return;
     const dk = formatPlanningDateKey(new Date());
     const db = await getDb();
-    const { segmentByEntryId } = await optimizeDailyPlanning(db, userId, dk);
+    const { segmentByEntryId } = await optimizeDailyPlanning(db, userId, dk, {
+      dayStartMinutes: preferences.dayStartMinutes,
+      pauseStartMinutes: preferences.pauseStartMinutes,
+      lunchDurationMinutes: preferences.lunchDurationMinutes,
+      priorityZones: preferences.priorityZones,
+    });
     const next = new Map<string, string>();
     for (const [id, seg] of segmentByEntryId) {
       next.set(id, seg.explanationLine);

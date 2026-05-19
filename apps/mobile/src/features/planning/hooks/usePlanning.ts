@@ -139,8 +139,9 @@ export function usePlanning(): {
 export function formatVisitClockLabel(
   visit: PlanningVisitRow,
   sortedSlices: EntryEtaSlice[],
+  dayStartMinutes?: number,
 ): string {
-  const mins = estimatedVisitClockMinutes(visit.orderIndex, sortedSlices);
+  const mins = estimatedVisitClockMinutes(visit.orderIndex, sortedSlices, dayStartMinutes);
   return minutesToClockLabel(mins);
 }
 

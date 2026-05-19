@@ -19,18 +19,19 @@ export interface EntryEtaSlice {
 }
 
 /**
- * Heure estimée d’arrivée : 08:00 locale + somme des `eta_minutes` des entrées strictly avant cette ligne (tri par `order_index`).
+ * Heure estimée d’arrivée : `dayStartMinutes` (défaut 08:00) + somme des `eta_minutes` des entrées strictly avant cette ligne (tri par `order_index`).
  */
 export function estimatedVisitClockMinutes(
   entryOrderIndex: number,
   sortedEntries: EntryEtaSlice[],
+  dayStartMinutes: number = PLANNING_DAY_START_MINUTES,
 ): number {
   let cum = 0;
   for (const e of sortedEntries) {
     if (e.orderIndex >= entryOrderIndex) break;
     cum += e.etaMinutes ?? 0;
   }
-  return PLANNING_DAY_START_MINUTES + cum;
+  return dayStartMinutes + cum;
 }
 
 export function minutesToClockLabel(totalMinutes: number): string {

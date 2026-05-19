@@ -3,9 +3,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   Pressable,
-  Switch,
 } from 'react-native';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
 import { FlatList } from 'react-native-gesture-handler';
 import {
@@ -29,7 +28,7 @@ import { PlanningCard } from '@/features/planning/components/PlanningCard';
 import { useAbsentPatient } from '@/features/planning/hooks/useAbsentPatient';
 import { useAddUrgency } from '@/features/planning/hooks/useAddUrgency';
 import { useOptimizePlanning } from '@/features/planning/hooks/useOptimizePlanning';
-import { usePlanningManualMode } from '@/features/planning/hooks/usePlanningManualMode';
+import { usePlanningPreferences } from '@/features/planning/hooks/usePlanningPreferences';
 import { useReorderPlanning } from '@/features/planning/hooks/useReorderPlanning';
 import {
   formatEtaSegmentLabel,
@@ -93,10 +92,11 @@ export default function PlanningScreen(): React.JSX.Element {
   } = useOptimizePlanning(refetchPlanning);
 
   const {
-    manualModePur,
-    setManualModePur,
+    preferences,
     preferencesReady: manualPreferencesReady,
-  } = usePlanningManualMode();
+  } = usePlanningPreferences();
+  const manualModePur = preferences.manualModePur;
+  const dayStartMinutes = preferences.dayStartMinutes;
 
   const {
     confirmAndMarkAbsent,
@@ -132,8 +132,17 @@ export default function PlanningScreen(): React.JSX.Element {
 
   const syncVariant = hasPendingSync ? 'pending' : 'synced';
 
-  const runFirstFocus = useCallback(async (): Promise<void> => {
-    await tryFirstFocusOptimizeIfEligible({
+  useFocusEffect(
+    useCallback(() => {
+      refetchPlanning();
+    }, [refetchPlanning]),
+  );
+
+  // Déclenche l'optimisation automatique au premier focus du jour dès que le chargement
+  // est terminé. Séparé de useFocusEffect pour éviter que isLoading/visits (qui changent
+  // pendant le chargement) ne recréent le callback et re-déclenchent useFocusEffect en boucle.
+  useEffect(() => {
+    void tryFirstFocusOptimizeIfEligible({
       visitsCount: visits.length,
       isLoading,
       manualModePur,
@@ -146,13 +155,6 @@ export default function PlanningScreen(): React.JSX.Element {
     manualPreferencesReady,
     tryFirstFocusOptimizeIfEligible,
   ]);
-
-  useFocusEffect(
-    useCallback(() => {
-      refetchPlanning();
-      void runFirstFocus();
-    }, [refetchPlanning, runFirstFocus]),
-  );
 
   const nextNavigableVisit = useMemo(
     () =>
@@ -203,7 +205,7 @@ export default function PlanningScreen(): React.JSX.Element {
           patientDisplayName={patientDisplayName(v)}
           addressShort={v.addressShort}
           addressForNavigation={v.addressFull}
-          estimatedClockLabel={formatVisitClockLabel(v, sortedEtaSlices)}
+          estimatedClockLabel={formatVisitClockLabel(v, sortedEtaSlices, dayStartMinutes)}
           careTypeLabel={DEFAULT_CARE_TYPE_LABEL}
           etaMinutesLabel={formatEtaSegmentLabel(v.etaMinutes)}
           status={v.status}
@@ -222,7 +224,7 @@ export default function PlanningScreen(): React.JSX.Element {
         />
       </ScaleDecorator>
     ),
-    [explanationByEntryId, sortedEtaSlices],
+    [dayStartMinutes, explanationByEntryId, sortedEtaSlices],
   );
 
   const listHeader = (
@@ -241,23 +243,6 @@ export default function PlanningScreen(): React.JSX.Element {
         <Chip style={styles.filterChip} compact disabled>
           Cette semaine
         </Chip>
-      </View>
-
-      <View style={styles.manualModeRow}>
-        <Text style={styles.manualLabel} maxFontSizeMultiplier={1.5}>
-          Mode Manuel Pur
-        </Text>
-        <Switch
-          value={manualModePur}
-          accessibilityLabel={
-            manualModePur
-              ? 'Désactiver le mode organisation manuelle pure'
-              : 'Activer le mode organisation manuelle pure sans optimisation automatique'
-          }
-          onValueChange={(v) => {
-            void setManualModePur(v);
-          }}
-        />
       </View>
 
       {totalVisits > 0 && !manualModePur && (
@@ -570,21 +555,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     marginHorizontal: -16,
-  },
-  manualModeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 0,
-    marginBottom: 8,
-    minHeight: 48,
-    gap: 12,
-    marginHorizontal: -16,
-  },
-  manualLabel: {
-    flex: 1,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
   },
   filterChip: { borderRadius: 20 },
   optimizeRow: {

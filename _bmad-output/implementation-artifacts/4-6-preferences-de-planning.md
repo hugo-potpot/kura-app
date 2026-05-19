@@ -1,6 +1,6 @@
 # Story 4.6 : Préférences de Planning
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note : validation optionnelle via validate-create-story / checklist avant dev-story. -->
 
@@ -44,13 +44,13 @@ afin que l’algorithme génère des suggestions alignées avec mon mode de trav
 
 ## Tâches / sous-tâches
 
-- [ ] Créer un module de préférences (ex. `usePlanningPreferences`, `planning-preferences-schema.ts` avec Zod) : lecture/écriture locale (priorité **`AsyncStorage` clé dédiée** alignée avec `usePlanningManualMode`, ou petite table Drizzle locale si équipe préfère cohérence SQLite — décider dans la PR et documenter).  
-- [ ] Ajouter route `apps/mobile/src/app/(app)/profile/planning-preferences.tsx` (+ entrée liste dans `apps/mobile/src/app/(app)/profile/index.tsx`).  
-- [ ] Formulaire : temps de début journée ; pause déjeuner (heure début + durée) ; zones prioritaires (MVP défini ci-dessus) ; commutateur Mode manuel pur **déplacé depuis** `planning/index.tsx` ou doublon supprimé au profit du seul écran préférences (`usePlanningManualMode` refactor pour partager même hook/store).  
-- [ ] Propager `dayStartMinutesSinceMidnight` (remplace l’usage direct de `PLANNING_DAY_START_MINUTES` partout où l’heure affichée compte pour l’utilisateur : `estimatedVisitClockMinutes`, `computeEtaSegmentsForPlanningDayOrder`, et imports dans `PlanningCard`/`usePlanning`).  
-- [ ] Étendre `computeEtaSegmentsForPlanningDayOrder` (ou helper dédié) pour **injecter** la pause : après cumul temps ≥ `pauseStartMinutes`, ajouter `lunchDurationMinutes` avant de continuer le cumul trajets/soins.  
-- [ ] Étendre `optimizeVisitOrder` / scoring pour bonus zone (données `VisitNode` + préférences géo) sans casser tests existants du TSP (`tsp-optimizer.test.ts`).  
-- [ ] Tests unitaires : sérialisation préférences ; calcul ETA avec pause aux bornes ; cas « pas de pause » ; cas mode manuel (pas d’optimize).  
+- [x] Créer un module de préférences (ex. `usePlanningPreferences`, `planning-preferences-schema.ts` avec Zod) : lecture/écriture locale (priorité **`AsyncStorage` clé dédiée** alignée avec `usePlanningManualMode`, ou petite table Drizzle locale si équipe préfère cohérence SQLite — décider dans la PR et documenter).  
+- [x] Ajouter route `apps/mobile/src/app/(app)/profile/planning-preferences.tsx` (+ entrée liste dans `apps/mobile/src/app/(app)/profile/index.tsx`).  
+- [x] Formulaire : temps de début journée ; pause déjeuner (heure début + durée) ; zones prioritaires (MVP défini ci-dessus) ; commutateur Mode manuel pur **déplacé depuis** `planning/index.tsx` ou doublon supprimé au profit du seul écran préférences (`usePlanningManualMode` refactor pour partager même hook/store).  
+- [x] Propager `dayStartMinutesSinceMidnight` (remplace l’usage direct de `PLANNING_DAY_START_MINUTES` partout où l’heure affichée compte pour l’utilisateur : `estimatedVisitClockMinutes`, `computeEtaSegmentsForPlanningDayOrder`, et imports dans `PlanningCard`/`usePlanning`).  
+- [x] Étendre `computeEtaSegmentsForPlanningDayOrder` (ou helper dédié) pour **injecter** la pause : après cumul temps ≥ `pauseStartMinutes`, ajouter `lunchDurationMinutes` avant de continuer le cumul trajets/soins.  
+- [x] Étendre `optimizeVisitOrder` / scoring pour bonus zone (données `VisitNode` + préférences géo) sans casser tests existants du TSP (`tsp-optimizer.test.ts`).  
+- [x] Tests unitaires : sérialisation préférences ; calcul ETA avec pause aux bornes ; cas « pas de pause » ; cas mode manuel (pas d’optimize).  
 
 ## Notes de développement
 
@@ -111,14 +111,38 @@ afin que l’algorithme génère des suggestions alignées avec mon mode de trav
 
 ### Agent Model Used
 
-_(complété par dev-story.)_
+claude-sonnet-4-6
 
 ### Debug Log References
 
+- Curly quote (U+2018/U+2019) introduit par l'Edit tool dans `tsp-optimizer.ts` → remplacé par ASCII + correction apostrophe `d'optimisation` dans string single-quotée (ligne 355).
+- Jest 30 : flag `--testPathPattern` déprécié, remplacé par argument positionnel.
+
 ### Completion Notes List
 
+- MVP zones prioritaires : cercles géographiques (lat/lng + radiusKm, max 3) avec `ZONE_BOOST_FACTOR = 0.7` appliqué dans la phase NN uniquement.
+- Mode manuel pur migré de `usePlanningManualMode` (clé `kura:planning:manual_mode`) vers `usePlanningPreferences` (clé `kura:planning:preferences`) avec migration automatique au premier chargement.
+- Pause déjeuner injectée avec flag `lunchInserted` pour éviter double-injection dans les boucles ETA.
+- Pre-existing TypeScript errors dans auth/patients features — non introduits par cette story.
+
 ### File List
+
+- `apps/mobile/src/features/planning/hooks/planning-preferences-schema.ts` (créé)
+- `apps/mobile/src/features/planning/hooks/planning-preferences-schema.test.ts` (créé)
+- `apps/mobile/src/features/planning/hooks/usePlanningPreferences.ts` (créé)
+- `apps/mobile/src/app/(app)/profile/planning-preferences.tsx` (créé)
+- `apps/mobile/src/features/planning/algorithm/tsp-optimizer.ts` (modifié — `PlanningDayTimelinePrefs`, zones prioritaires, pause déjeuner)
+- `apps/mobile/src/features/planning/algorithm/tsp-optimizer.test.ts` (modifié — nouveaux tests pause, zones, dayStart)
+- `apps/mobile/src/features/planning/utils/planning-utils.ts` (modifié — `dayStartMinutes` paramètre optionnel)
+- `apps/mobile/src/features/planning/utils/planning-utils.test.ts` (modifié — test dayStart personnalisé)
+- `apps/mobile/src/features/planning/hooks/usePlanning.ts` (modifié — `dayStartMinutes` propagé à `formatVisitClockLabel`)
+- `apps/mobile/src/features/planning/hooks/useOptimizePlanning.ts` (modifié — lit `usePlanningPreferences`, passe prefs à `optimizeDailyPlanning`)
+- `apps/mobile/src/features/planning/services/optimizeDailyPlanning.ts` (modifié — paramètre `prefs?: PlanningDayTimelinePrefs`)
+- `apps/mobile/src/app/(app)/planning/index.tsx` (modifié — suppression Switch mode manuel, propagation `dayStartMinutes`)
+- `apps/mobile/src/app/(app)/profile/index.tsx` (modifié — entrée navigation vers préférences planning)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modifié — `in-progress` → `review`)
 
 ### Change Log
 
 - 2026-05-07 : Création story 4.6 (workflow create-story) ; sprint `4-6-preferences-de-planning` → `ready-for-dev`.
+- 2026-05-19 : Implémentation complète story 4.6 (dev-story) ; statut → `review`.
