@@ -21,6 +21,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link, useFocusEffect } from 'expo-router';
 
 import { SyncStatusIndicator } from '@/components/SyncStatusIndicator';
+import { resetLocalDb } from '@/features/planning/lib/resetLocalPlanning';
+import { getDb } from '@/lib/db';
 import { CircularProgressRing } from '@/features/planning/components/CircularProgressRing';
 import { MapToggleSection } from '@/features/planning/components/MapToggleSection';
 import { UrgencyBottomSheet } from '@/features/planning/components/UrgencyBottomSheet';
@@ -305,6 +307,21 @@ export default function PlanningScreen(): React.JSX.Element {
               <Text style={styles.statText} maxFontSizeMultiplier={1.5}>
                 ETA total ~{totalEtaMinutes} min
               </Text>
+              {__DEV__ && (
+                <Pressable
+                  onPress={() => {
+                    void (async () => {
+                      const db = await getDb();
+                      await resetLocalDb(db);
+                      refetchPlanning();
+                    })();
+                  }}
+                  style={{ marginLeft: 8, backgroundColor: 'rgba(255,0,0,0.25)', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}
+                  accessibilityLabel="Reset DB dev"
+                >
+                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>🗑️ Reset DB</Text>
+                </Pressable>
+              )}
             </View>
             <SyncStatusIndicator variant={syncVariant} />
           </View>

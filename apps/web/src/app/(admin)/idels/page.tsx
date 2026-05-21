@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +15,7 @@ import {
   Users,
   CheckCircle,
   XCircle,
+  Clock,
 } from 'lucide-react';
 
 interface Member {
@@ -24,6 +26,8 @@ interface Member {
   disabled: boolean;
   createdAt: string;
   isSelf: boolean;
+  patientCount: number;
+  lastLoginAt: string | null;
 }
 
 interface Invitation {
@@ -120,14 +124,28 @@ function InvitationStatusBadge({ status }: { status: string }) {
   );
 }
 
+function formatRelativeDate(dateStr: string | null): string {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Aujourd'hui";
+  if (diffDays === 1) return 'Hier';
+  if (diffDays < 7) return `Il y a ${diffDays} jours`;
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 function MemberRow({
   member,
   onDeactivate,
   onRoleChange,
+  onViewPlanning,
 }: {
   member: Member;
   onDeactivate: (id: string) => void;
   onRoleChange: (id: string, role: string) => void;
+  onViewPlanning: (id: string) => void;
 }) {
   return (
     <tr className="hover:bg-slate-50 transition-colors">
@@ -138,7 +156,16 @@ function MemberRow({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-slate-900">{member.name}</span>
+              {member.role === 'idel' ? (
+                <button
+                  onClick={() => onViewPlanning(member.id)}
+                  className="text-sm font-medium text-[#1e2d6b] hover:underline text-left"
+                >
+                  {member.name}
+                </button>
+              ) : (
+                <span className="text-sm font-medium text-slate-900">{member.name}</span>
+              )}
               {member.isSelf && (
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-700 uppercase tracking-wide">
                   vous
@@ -157,6 +184,24 @@ function MemberRow({
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <StatusBadge disabled={member.disabled} />
+      </td>
+      {/* Patients assignés (IDELs only) */}
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+        {member.role === 'idel' ? (
+          <span className="inline-flex items-center gap-1">
+            <Users className="w-3.5 h-3.5 text-teal-500" />
+            {member.patientCount}
+          </span>
+        ) : (
+          <span className="text-slate-300">—</span>
+        )}
+      </td>
+      {/* Dernière connexion */}
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+        <span className="inline-flex items-center gap-1">
+          <Clock className="w-3.5 h-3.5 text-slate-300" />
+          {formatRelativeDate(member.lastLoginAt)}
+        </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right">
         {!member.isSelf && (
@@ -353,6 +398,7 @@ function InviteModal({
 }
 
 export default function IdelsPage() {
+  const router = useRouter();
   const [members, setMembers] = useState<Member[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -540,6 +586,12 @@ export default function IdelsPage() {
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Statut
                   </th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Patients
+                  </th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Dernière connexion
+                  </th>
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">
                     Actions
                   </th>
@@ -552,6 +604,7 @@ export default function IdelsPage() {
                     member={member}
                     onDeactivate={handleDeactivate}
                     onRoleChange={handleRoleChange}
+                    onViewPlanning={(id) => router.push(`/idels/${id}`)}
                   />
                 ))}
               </tbody>
@@ -582,6 +635,12 @@ export default function IdelsPage() {
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Statut
                   </th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Patients
+                  </th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Dernière connexion
+                  </th>
                   <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">
                     Actions
                   </th>
@@ -594,6 +653,7 @@ export default function IdelsPage() {
                     member={member}
                     onDeactivate={handleDeactivate}
                     onRoleChange={handleRoleChange}
+                    onViewPlanning={() => undefined}
                   />
                 ))}
               </tbody>

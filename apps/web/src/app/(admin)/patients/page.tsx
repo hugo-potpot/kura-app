@@ -33,6 +33,8 @@ interface Patient {
   latitude: number | null;
   longitude: number | null;
   assignedIdelId: string | null;
+  assignedIdelName: string | null;
+  lastTransmissionAt: string | null;
   status: string;
   updatedAt: string;
   careTypes?: string[];
@@ -689,7 +691,7 @@ export default function PatientsPage() {
   const filtered = patients.filter((p) => {
     const q = search.toLowerCase();
     const matchesSearch =
-      search.trim() === '' ||
+      search.trim().length < 2 ||
       `${p.firstName} ${p.lastName}`.toLowerCase().includes(q) ||
       (p.treatingDoctor ?? '').toLowerCase().includes(q) ||
       (p.address ?? '').toLowerCase().includes(q);
@@ -811,10 +813,7 @@ export default function PatientsPage() {
                   Patient
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Médecin traitant
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Type de soins
+                  Adresse
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   IDEL assigné
@@ -823,7 +822,7 @@ export default function PatientsPage() {
                   Statut
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Dernière mise à jour
+                  Dernière transmission
                 </th>
                 <th className="px-6 py-3" />
               </tr>
@@ -870,17 +869,16 @@ export default function PatientsPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {patient.treatingDoctor ? highlightText(patient.treatingDoctor, search) : '—'}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {patient.careTypes && patient.careTypes.length > 0 ? (
-                          patient.careTypes.map((type) => <CareTag key={type} type={type} />)
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
-                        )}
-                      </div>
+                    <td className="px-6 py-4 text-sm text-slate-600 max-w-[200px]">
+                      <span className="truncate block">
+                        {patient.address ? highlightText(patient.address, search) : '—'}
+                      </span>
+                      {patient.latitude === null && (
+                        <span className="inline-flex items-center gap-1 text-xs text-amber-600 mt-0.5">
+                          <AlertCircle className="w-3 h-3" />
+                          Non géolocalisé
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                       <button
@@ -892,22 +890,16 @@ export default function PatientsPage() {
                         }`}
                       >
                         <UserCheck className="w-3 h-3" />
-                        {patient.assignedIdelId ? 'Assigné' : 'Non assigné'}
+                        {patient.assignedIdelName ?? (patient.assignedIdelId ? 'Assigné' : 'Non assigné')}
                       </button>
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={patient.status} />
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-500">
-                      <div className="flex flex-col gap-1">
-                        <span>{formatDate(patient.updatedAt)}</span>
-                        {patient.latitude === null && (
-                          <span className="inline-flex items-center gap-1 text-xs text-amber-600">
-                            <AlertCircle className="w-3 h-3" />
-                            Adresse non géolocalisée — placé en fin de planning
-                          </span>
-                        )}
-                      </div>
+                      {patient.lastTransmissionAt ? formatDate(patient.lastTransmissionAt) : (
+                        <span className="text-slate-300">—</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="relative inline-block">

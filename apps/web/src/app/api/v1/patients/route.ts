@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { eq, and, or, ilike, desc } from 'drizzle-orm';
+import { eq, and, or, ilike, desc, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { patientsPg } from '@kura/db';
+import { patientsPg, transmissionsPg, authUser } from '@kura/db';
 import { generateId } from '@kura/shared';
 import { geocodeAddress } from '@/lib/geocoding';
 
@@ -132,5 +132,45 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     .where(and(...conditions))
     .orderBy(desc(patientsPg.updatedAt));
 
-  return NextResponse.json({ data: { patients } }, { status: 200 });
+  if (patients.length === 0) {
+    return NextResponse.json({ data: { patients: [] } }, { status: 200 });
+  }
+
+  const patientIds = patients.map((p) => p.id);
+
+  // Dernière transmission par patient
+  const lastTransmissions = await db
+    .select({ patientId: transmissionsPg.patientId, createdAt: transmissionsPg.createdAt })
+    .from(transmissionsPg)
+    .where(inArray(transmissionsPg.patientId, patientIds))
+    .orderBy(desc(transmissionsPg.createdAt));
+
+  const lastTransmissionMap = new Map<string, Date>();
+  for (const t of lastTransmissions) {
+    if (!lastTransmissionMap.has(t.patientId)) {
+      lastTransmissionMap.set(t.patientId, t.createdAt);
+    }
+  }
+
+  // Nom des IDELs assignés
+  const idelIds = [
+    ...new Set(patients.filter((p) => p.assignedIdelId !== null).map((p) => p.assignedIdelId!)),
+  ];
+  const idels =
+    idelIds.length > 0
+      ? await db
+          .select({ id: authUser.id, name: authUser.name })
+          .from(authUser)
+          .where(inArray(authUser.id, idelIds))
+          .orderBy(authUser.name)
+      : [];
+  const idelNameMap = new Map(idels.map((i) => [i.id, i.name]));
+
+  const enrichedPatients = patients.map((p) => ({
+    ...p,
+    lastTransmissionAt: lastTransmissionMap.get(p.id) ?? null,
+    assignedIdelName: p.assignedIdelId ? (idelNameMap.get(p.assignedIdelId) ?? null) : null,
+  }));
+
+  return NextResponse.json({ data: { patients: enrichedPatients } }, { status: 200 });
 }

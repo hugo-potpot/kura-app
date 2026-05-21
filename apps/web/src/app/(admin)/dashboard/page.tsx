@@ -1,6 +1,6 @@
 import { headers } from 'next/headers';
-import { Users, Stethoscope, FileText, Activity, RefreshCw, Bell } from 'lucide-react';
-import { and, count, desc, eq, gte, inArray } from 'drizzle-orm';
+import { Users, Stethoscope, FileText, UserX, RefreshCw, Bell } from 'lucide-react';
+import { and, count, desc, eq, gte, inArray, isNull } from 'drizzle-orm';
 
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -9,49 +9,65 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentPatientsTable, type RecentPatient } from '@/components/dashboard/RecentPatientsTable';
 
 async function getDashboardStats(structureId: string) {
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  // Lundi de la semaine courante à 00h00
+  const startOfWeek = new Date();
+  const dayOfWeek = startOfWeek.getDay();
+  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  startOfWeek.setDate(startOfWeek.getDate() - daysToMonday);
+  startOfWeek.setHours(0, 0, 0, 0);
 
-  const [idelCountResult, patientCountResult, transmissionCountResult] = await Promise.all([
-    // IDELs actifs dans la structure
-    db
-      .select({ count: count() })
-      .from(authUser)
-      .where(
-        and(
-          eq(authUser.structureId, structureId),
-          eq(authUser.role, 'idel'),
-          eq(authUser.disabled, false),
+  const [idelCountResult, patientCountResult, transmissionCountResult, unassignedCountResult] =
+    await Promise.all([
+      // IDELs actifs dans la structure
+      db
+        .select({ count: count() })
+        .from(authUser)
+        .where(
+          and(
+            eq(authUser.structureId, structureId),
+            eq(authUser.role, 'idel'),
+            eq(authUser.disabled, false),
+          ),
         ),
-      ),
-    // Patients actifs dans la structure
-    db
-      .select({ count: count() })
-      .from(patientsPg)
-      .where(
-        and(
-          eq(patientsPg.structureId, structureId),
-          eq(patientsPg.status, 'active'),
+      // Patients actifs dans la structure
+      db
+        .select({ count: count() })
+        .from(patientsPg)
+        .where(
+          and(
+            eq(patientsPg.structureId, structureId),
+            eq(patientsPg.status, 'active'),
+          ),
         ),
-      ),
-    // Transmissions ce mois (via join patients → structureId)
-    db
-      .select({ count: count() })
-      .from(transmissionsPg)
-      .innerJoin(patientsPg, eq(transmissionsPg.patientId, patientsPg.id))
-      .where(
-        and(
-          eq(patientsPg.structureId, structureId),
-          gte(transmissionsPg.createdAt, startOfMonth),
+      // Transmissions cette semaine (lundi 00h00 → maintenant)
+      db
+        .select({ count: count() })
+        .from(transmissionsPg)
+        .innerJoin(patientsPg, eq(transmissionsPg.patientId, patientsPg.id))
+        .where(
+          and(
+            eq(patientsPg.structureId, structureId),
+            gte(transmissionsPg.createdAt, startOfWeek),
+          ),
         ),
-      ),
-  ]);
+      // Patients actifs sans IDEL assigné
+      db
+        .select({ count: count() })
+        .from(patientsPg)
+        .where(
+          and(
+            eq(patientsPg.structureId, structureId),
+            eq(patientsPg.status, 'active'),
+            isNull(patientsPg.assignedIdelId),
+          ),
+        ),
+    ]);
 
   return {
     idelCount: idelCountResult[0]?.count ?? 0,
     patientCount: patientCountResult[0]?.count ?? 0,
     transmissionCount: transmissionCountResult[0]?.count ?? 0,
+    unassignedCount: unassignedCountResult[0]?.count ?? 0,
   };
 }
 
@@ -128,7 +144,7 @@ export default async function DashboardPage() {
         getDashboardStats(structureId),
         getRecentPatients(structureId),
       ])
-    : [{ idelCount: 0, patientCount: 0, transmissionCount: 0 }, []];
+    : [{ idelCount: 0, patientCount: 0, transmissionCount: 0, unassignedCount: 0 }, []];
 
   return (
     <div className="space-y-8">
@@ -176,7 +192,7 @@ export default async function DashboardPage() {
         <StatCard
           icon={Users}
           value={stats.patientCount}
-          label="Patients"
+          label="Patients actifs"
           accentColor="border-l-blue-500"
           iconBgColor="bg-blue-50"
           iconColor="text-blue-600"
@@ -184,18 +200,18 @@ export default async function DashboardPage() {
         <StatCard
           icon={FileText}
           value={stats.transmissionCount}
-          label="Transmissions ce mois"
+          label="Transmissions cette semaine"
           accentColor="border-l-orange-500"
           iconBgColor="bg-orange-50"
           iconColor="text-orange-600"
         />
         <StatCard
-          icon={Activity}
-          value="99.8%"
-          label="Uptime sync"
-          accentColor="border-l-purple-500"
-          iconBgColor="bg-purple-50"
-          iconColor="text-purple-600"
+          icon={UserX}
+          value={stats.unassignedCount}
+          label="Sans IDEL assigné"
+          accentColor="border-l-red-400"
+          iconBgColor="bg-red-50"
+          iconColor="text-red-500"
         />
       </div>
 

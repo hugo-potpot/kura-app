@@ -122,11 +122,12 @@ development_status:
   # ─────────────────────────────────────────────────────────────────────────────
   # Epic 8 : Back Office Web d'Administration
   # ─────────────────────────────────────────────────────────────────────────────
-  epic-8: backlog
-  8-1-tableau-de-bord-acces-back-office: backlog
-  8-2-gestion-de-la-liste-des-patients-back-office: backlog
+  epic-8: in-progress
+  8-1-tableau-de-bord-acces-back-office: review
+  8-2-gestion-de-la-liste-des-patients-back-office: review
   8-3-import-export-csv-des-patients: backlog
-  8-4-vue-des-idel-modification-des-plannings: backlog
+  8-4-vue-des-idel-modification-des-plannings: review
+  8-5-sync-planning-mobile: review
   epic-8-retrospective: optional
 
   # ─────────────────────────────────────────────────────────────────────────────

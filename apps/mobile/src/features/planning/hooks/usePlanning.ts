@@ -4,7 +4,7 @@ import { useAuthStore } from '@/features/auth/stores/auth-store';
 import { getDb } from '@/lib/db';
 
 import { fetchPlanningVisitsForDate } from '../lib/fetchPlanningRows';
-import { seedDevPlanningIfEmpty } from '../lib/devPlanningSeed';
+import { syncPlanningFromServer } from '../services/syncPlanningFromServer';
 import type { PlanningVisitRow } from '../model/types';
 import type { PlanningMapPin } from '../utils/planning-map-pins';
 import {
@@ -81,9 +81,7 @@ export function usePlanning(): {
       setIsLoading(true);
       try {
         const db = await getDb();
-        if (__DEV__) {
-          await seedDevPlanningIfEmpty(db, userId);
-        }
+        await syncPlanningFromServer(db, userId, dateKey);
         const mapped = await fetchPlanningVisitsForDate(db, userId, dateKey);
 
         if (cancelled) return;
