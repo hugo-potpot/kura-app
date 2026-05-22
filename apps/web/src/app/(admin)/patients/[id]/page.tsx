@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, AlertCircle, MapPin, User, Phone, Stethoscope, Activity, Archive, Trash2, X } from 'lucide-react';
+import { ArrowLeft, AlertCircle, MapPin, User, Phone, Stethoscope, Activity, Archive, Trash2, X, ClipboardList, Cloud, CloudOff } from 'lucide-react';
 import { AddressAutocomplete, type AddressCoords } from '@/components/ui/address-autocomplete';
 import { VitalSignsChart, type VitalSignPoint } from '@/components/patients/VitalSignsChart';
 
@@ -37,6 +37,35 @@ interface VitalSign {
 
 type ConstanteKey = 'tension' | 'glycemia' | 'weight' | 'temperature' | 'spo2';
 type VitalSignRange = '7d' | '30d' | '6m';
+
+type CareType = 'toilette' | 'pansement' | 'injection' | 'constantes' | 'autre';
+
+interface Transmission {
+  id: string;
+  patientId: string;
+  authorId: string;
+  authorName: string | null;
+  contentValidated: string;
+  careType: CareType;
+  createdAt: string;
+  syncedAt: string | null;
+}
+
+const CARE_TYPE_LABELS: Record<CareType, string> = {
+  toilette: 'Toilette',
+  pansement: 'Pansement',
+  injection: 'Injection',
+  constantes: 'Constantes',
+  autre: 'Autre',
+};
+
+const CARE_TYPE_COLORS: Record<CareType, { text: string; bg: string; border: string }> = {
+  toilette:   { text: 'text-indigo-700',  bg: 'bg-indigo-50',  border: 'border-indigo-200' },
+  pansement:  { text: 'text-violet-700',  bg: 'bg-violet-50',  border: 'border-violet-200' },
+  injection:  { text: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-200' },
+  constantes: { text: 'text-rose-700',    bg: 'bg-rose-50',    border: 'border-rose-200' },
+  autre:      { text: 'text-slate-600',   bg: 'bg-slate-50',   border: 'border-slate-200' },
+};
 
 interface ConstanteConfig {
   label: string;
@@ -273,7 +302,7 @@ export default function PatientDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'info' | 'constantes'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'constantes' | 'transmissions'>('info');
   const [addressCoords, setAddressCoords] = useState<AddressCoords | null>(null);
 
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
@@ -285,6 +314,9 @@ export default function PatientDetailPage() {
   const [vsLoading, setVsLoading] = useState(false);
   const [selectedConstante, setSelectedConstante] = useState<ConstanteKey>('tension');
   const [selectedRange, setSelectedRange] = useState<VitalSignRange>('30d');
+
+  const [transmissions, setTransmissions] = useState<Transmission[]>([]);
+  const [txLoading, setTxLoading] = useState(false);
 
   // Detect role from session — fetched lazily via existing /api/v1/me or fallback
   const [isDoctor, setIsDoctor] = useState(false);
@@ -340,6 +372,24 @@ export default function PatientDetailPage() {
     void load();
     void loadRole();
   }, [patientId, reset]);
+
+  useEffect(() => {
+    if (activeTab !== 'transmissions') return;
+    async function loadTx() {
+      setTxLoading(true);
+      try {
+        const res = await fetch(`/api/v1/patients/${patientId}/transmissions`);
+        if (!res.ok) return;
+        const json = await res.json() as { data?: { transmissions?: Transmission[] } };
+        setTransmissions(json.data?.transmissions ?? []);
+      } catch {
+        /* silent */
+      } finally {
+        setTxLoading(false);
+      }
+    }
+    void loadTx();
+  }, [activeTab, patientId]);
 
   useEffect(() => {
     if (activeTab !== 'constantes') return;
@@ -525,10 +575,64 @@ export default function PatientDetailPage() {
               >
                 Constantes
               </button>
+              <button
+                onClick={() => setActiveTab('transmissions')}
+                className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
+                  activeTab === 'transmissions'
+                    ? 'border-[#1e2d6b] text-[#1e2d6b]'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <ClipboardList className="w-3.5 h-3.5" />
+                Transmissions
+              </button>
             </div>
           </div>
 
-          {activeTab === 'constantes' ? (
+          {activeTab === 'transmissions' ? (
+            <div className="space-y-3">
+              {txLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#1e2d6b]" />
+                </div>
+              ) : transmissions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+                  <ClipboardList className="w-10 h-10" />
+                  <p className="text-sm font-medium">Aucune transmission pour ce patient</p>
+                  <p className="text-xs">Les transmissions saisies sur l&apos;application mobile apparaîtront ici.</p>
+                </div>
+              ) : (
+                transmissions.map((tx) => {
+                  const colors = CARE_TYPE_COLORS[tx.careType] ?? CARE_TYPE_COLORS['autre'];
+                  const date = new Date(tx.createdAt);
+                  return (
+                    <div key={tx.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                      <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-100 bg-slate-50/60">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${colors.bg} ${colors.text} ${colors.border}`}>
+                          {CARE_TYPE_LABELS[tx.careType]}
+                        </span>
+                        <span className="text-xs text-slate-500 flex-1">
+                          {date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                          {' · '}
+                          {date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        {tx.authorName && (
+                          <span className="text-xs text-slate-400">{tx.authorName}</span>
+                        )}
+                        <span className={`inline-flex items-center gap-1 text-xs font-medium ${tx.syncedAt ? 'text-emerald-600' : 'text-amber-600'}`}>
+                          {tx.syncedAt
+                            ? <><Cloud className="w-3 h-3" /> Synchronisée</>
+                            : <><CloudOff className="w-3 h-3" /> En attente</>
+                          }
+                        </span>
+                      </div>
+                      <p className="px-5 py-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{tx.contentValidated}</p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          ) : activeTab === 'constantes' ? (
             <div className="space-y-4">
               {/* Sélecteurs */}
               <div className="flex flex-wrap items-center gap-6">

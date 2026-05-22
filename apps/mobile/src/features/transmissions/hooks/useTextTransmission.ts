@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { useQueryClient } from '@tanstack/react-query';
 import { generateId } from '@kura/shared';
 import { transmissions } from '@kura/db';
+import { syncTransmissions } from '../services/syncTransmissions';
 
 import { getDb } from '@/lib/db';
 import { useAuthStore } from '@/features/auth/stores/auth-store';
@@ -55,6 +56,10 @@ export function useTextTransmission(): UseTextTransmissionResult {
 
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         void queryClient.invalidateQueries({ queryKey: ['transmissions'] });
+        // Tenter une sync immédiate si online
+        void syncTransmissions().then(() => {
+          void queryClient.invalidateQueries({ queryKey: ['transmissions'] });
+        });
         setSaveStatus('done');
         return id;
       } catch {
