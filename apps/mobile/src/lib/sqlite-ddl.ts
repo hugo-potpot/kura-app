@@ -57,4 +57,19 @@ export const SQLITE_DDL = `
   );
 
   CREATE INDEX IF NOT EXISTS idx_planning_entries_idel_date ON planning_entries(idel_id, date);
+
+  CREATE TABLE IF NOT EXISTS transmissions (
+    id TEXT PRIMARY KEY,
+    patient_id TEXT NOT NULL,
+    author_id TEXT NOT NULL,
+    content_original TEXT,
+    content_validated TEXT NOT NULL DEFAULT '',
+    care_type TEXT NOT NULL DEFAULT 'autre',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    synced_at INTEGER
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_transmissions_patient ON transmissions(patient_id);
+  CREATE INDEX IF NOT EXISTS idx_transmissions_author ON transmissions(author_id, created_at);
 `;

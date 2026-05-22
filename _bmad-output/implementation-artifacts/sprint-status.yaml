@@ -86,15 +86,16 @@ development_status:
   4-4-gestion-des-patients-absents-urgences: review
   4-5-carte-itineraire-navigation-gps: review
   4-6-preferences-de-planning: review
+  4-7-terminer-un-soin: review
   epic-4-retrospective: optional
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Epic 5 : Transmissions & Documentation Médicale
   # ─────────────────────────────────────────────────────────────────────────────
-  epic-5: backlog
-  5-1-saisie-de-transmission-par-dictee-vocale-ia: backlog
+  epic-5: in-progress
+  5-1-saisie-de-transmission-par-dictee-vocale-ia: review
   5-2-validation-obligatoire-de-la-transcription-ia-conformite-hds: backlog
-  5-3-saisie-de-transmission-par-texte-templates: backlog
+  5-3-saisie-de-transmission-par-texte-templates: review
   5-4-enregistrement-des-constantes-vitales: backlog
   5-5-historique-des-transmissions-audit-trail: backlog
   epic-5-retrospective: optional
@@ -128,6 +129,7 @@ development_status:
   8-3-import-export-csv-des-patients: backlog
   8-4-vue-des-idel-modification-des-plannings: review
   8-5-sync-planning-mobile: review
+  8-6-vue-semaine-planning-back-office: review
   epic-8-retrospective: optional
 
   # ─────────────────────────────────────────────────────────────────────────────

@@ -28,6 +28,9 @@ import { useDeletePatient } from '../hooks/useDeletePatient';
 import { useVitalSigns, type VitalSignRange } from '../hooks/useVitalSigns';
 import { AddressAutocomplete, type AddressCoords } from '../components/AddressAutocomplete';
 import { ConstantesLineChart, type ChartDataPoint } from '../components/ConstantesLineChart';
+import { NewTransmissionSheet } from '@/features/transmissions/components/NewTransmissionSheet';
+import { useTransmissions } from '@/features/transmissions/hooks/useTransmissions';
+import { CARE_TYPE_LABELS } from '@/features/transmissions/services/care-type-templates';
 import { COLORS } from '@/theme/kura-theme';
 
 type ConstanteKey = 'tension' | 'glycemia' | 'weight' | 'temperature' | 'spo2';
@@ -82,8 +85,10 @@ export function PatientDetailScreen({ patientId }: Props): React.JSX.Element {
   const [form, setForm] = useState<Omit<UpdatePatientInput, 'id'>>({});
   const [selectedConstante, setSelectedConstante] = useState<ConstanteKey>('tension');
   const [selectedRange, setSelectedRange] = useState<VitalSignRange>('30d');
+  const [transmissionSheetVisible, setTransmissionSheetVisible] = useState(false);
 
   const { data: vitalSignsData, isLoading: isLoadingVS } = useVitalSigns(patientId, selectedRange);
+  const { data: patientTransmissions = [] } = useTransmissions(patientId, 'all');
 
   function startEditing() {
     if (!patient) return;
@@ -388,6 +393,46 @@ export function PatientDetailScreen({ patientId }: Props): React.JSX.Element {
             </View>
           </View>
 
+          {/* Section : Transmissions */}
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <MaterialCommunityIcons name="clipboard-text-outline" size={16} color={COLORS.primary} />
+              <Text style={styles.cardTitle}>Transmissions</Text>
+              <View style={{ flex: 1 }} />
+              <Button
+                mode="text"
+                compact
+                icon="plus"
+                onPress={() => setTransmissionSheetVisible(true)}
+                textColor={COLORS.primary}
+              >
+                Ajouter
+              </Button>
+            </View>
+            <View style={styles.cardBody}>
+              {patientTransmissions.length === 0 ? (
+                <Text style={styles.txEmpty}>Aucune transmission pour ce patient.</Text>
+              ) : (
+                patientTransmissions.slice(0, 5).map((tx) => (
+                  <View key={tx.id} style={styles.txRow}>
+                    <View style={styles.txLeft}>
+                      <Text style={styles.txType}>{CARE_TYPE_LABELS[tx.careType] ?? tx.careType}</Text>
+                      <Text style={styles.txDate}>
+                        {new Date(tx.createdAt).toLocaleDateString('fr-FR', {
+                          day: '2-digit', month: '2-digit', year: '2-digit',
+                        })} · {new Date(tx.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+                    <Text style={styles.txContent} numberOfLines={2}>{tx.contentValidated}</Text>
+                  </View>
+                ))
+              )}
+              {patientTransmissions.length > 5 && (
+                <Text style={styles.txMore}>+ {patientTransmissions.length - 5} autre{patientTransmissions.length - 5 > 1 ? 's' : ''}</Text>
+              )}
+            </View>
+          </View>
+
           {/* Actions */}
           {isEditing ? (
             <View style={styles.editActions}>
@@ -540,6 +585,14 @@ export function PatientDetailScreen({ patientId }: Props): React.JSX.Element {
       >
         {snackbarMessage}
       </Snackbar>
+
+      <NewTransmissionSheet
+        visible={transmissionSheetVisible}
+        patientId={patientId}
+        patientName={patient ? `${patient.firstName} ${patient.lastName}` : undefined}
+        onClose={() => setTransmissionSheetVisible(false)}
+        onSaved={() => setTransmissionSheetVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -733,6 +786,20 @@ const styles = StyleSheet.create({
   buttonContent: {
     paddingVertical: 4,
   },
+
+  // Transmissions
+  txEmpty: { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', paddingVertical: 8 },
+  txRow: {
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#F1F5F9',
+    gap: 4,
+  },
+  txLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
+  txType: { fontSize: 11, fontWeight: '700', color: COLORS.primary, textTransform: 'uppercase', letterSpacing: 0.4 },
+  txDate: { fontSize: 11, color: COLORS.textMuted },
+  txContent: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 18 },
+  txMore: { fontSize: 12, color: COLORS.textMuted, textAlign: 'center', paddingTop: 8 },
 
   // Danger zone
   dangerZone: {
