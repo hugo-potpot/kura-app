@@ -44,8 +44,12 @@ export async function GET(request: NextRequest, { params }: RouteParams): Promis
     .where(and(eq(patientsPg.assignedIdelId, idelId), eq(patientsPg.status, 'active')))
     .orderBy(patientsPg.lastName);
 
-  // Planning du jour (date locale)
+  // Planning pour la date demandée (query param ?date=YYYY-MM-DD, fallback = aujourd'hui)
+  const url = new URL(request.url);
+  const dateParam = url.searchParams.get('date');
   const today = new Date().toISOString().slice(0, 10);
+  const date = dateParam !== null && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : today;
+
   const planning = await db
     .select({
       id: planningEntriesPg.id,
@@ -56,10 +60,10 @@ export async function GET(request: NextRequest, { params }: RouteParams): Promis
       status: planningEntriesPg.status,
     })
     .from(planningEntriesPg)
-    .where(and(eq(planningEntriesPg.idelId, idelId), eq(planningEntriesPg.date, today)))
+    .where(and(eq(planningEntriesPg.idelId, idelId), eq(planningEntriesPg.date, date)))
     .orderBy(planningEntriesPg.orderIndex);
 
-  return NextResponse.json({ data: { idel, patients, planning, today } }, { status: 200 });
+  return NextResponse.json({ data: { idel, patients, planning, today: date } }, { status: 200 });
 }
 
 const PutSchema = z.object({

@@ -117,4 +117,24 @@ async function get<T>(path: string, options?: GetOptions): Promise<ApiResponse<T
   return { data };
 }
 
-export const apiClient = { post, get };
+async function patch<T>(path: string, body: unknown): Promise<ApiResponse<T>> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'PATCH',
+    headers: await authHeaders(),
+    body: JSON.stringify(body),
+  });
+
+  if (response.status === 401) {
+    handleUnauthorized();
+  }
+
+  if (!response.ok) {
+    const error: ApiError = { response: { status: response.status } };
+    throw error;
+  }
+
+  const data = await response.json() as T;
+  return { data };
+}
+
+export const apiClient = { post, get, patch };

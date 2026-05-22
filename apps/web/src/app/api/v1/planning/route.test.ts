@@ -5,8 +5,12 @@ vi.mock('@/lib/auth', () => ({
   auth: { api: { getSession: vi.fn() } },
 }));
 
+const txMock = { update: vi.fn() };
 vi.mock('@/lib/db', () => ({
-  db: { select: vi.fn() },
+  db: {
+    select: vi.fn(),
+    transaction: vi.fn(async (cb: (tx: typeof txMock) => Promise<void>) => cb(txMock)),
+  },
 }));
 
 vi.mock('@kura/db', () => ({
@@ -34,7 +38,7 @@ vi.mock('@kura/db', () => ({
 
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { GET } from './route';
+import { GET, PATCH } from './route';
 
 const IDEL_SESSION = {
   user: { id: 'idel-1', role: 'idel', structureId: 'struct-1' },
@@ -118,5 +122,63 @@ describe('GET /api/v1/planning', () => {
     const req = new NextRequest('http://localhost/api/v1/planning?date=not-a-date');
     const res = await GET(req);
     expect(res.status).toBe(400);
+  });
+});
+
+describe('PATCH /api/v1/planning', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(txMock.update).mockReturnValue({
+      set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) }),
+    } as never);
+  });
+
+  it('retourne 401 si non authentifié', async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(NO_SESSION as never);
+    const req = new NextRequest('http://localhost/api/v1/planning', {
+      method: 'PATCH',
+      body: JSON.stringify({ entries: [{ id: 'e-1', status: 'done' }] }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const res = await PATCH(req);
+    expect(res.status).toBe(401);
+  });
+
+  it('retourne 400 si body invalide', async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(IDEL_SESSION as never);
+    const req = new NextRequest('http://localhost/api/v1/planning', {
+      method: 'PATCH',
+      body: JSON.stringify({ entries: [] }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const res = await PATCH(req);
+    expect(res.status).toBe(400);
+  });
+
+  it('met à jour les statuts des entrées appartenant à l\'IDEL', async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(IDEL_SESSION as never);
+
+    // db.select retourne les entrées existantes de cet IDEL
+    vi.mocked(db.select).mockImplementation(() => ({
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([{ id: 'e-1' }, { id: 'e-2' }]),
+    } as never));
+
+    const req = new NextRequest('http://localhost/api/v1/planning', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        entries: [
+          { id: 'e-1', status: 'done' },
+          { id: 'e-2', status: 'skipped' },
+          { id: 'e-other', status: 'done' }, // n'appartient pas à cet IDEL → ignoré
+        ],
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const res = await PATCH(req);
+    expect(res.status).toBe(200);
+
+    const body = await res.json() as { data: { updated: number } };
+    expect(body.data.updated).toBe(2); // e-other ignoré
   });
 });

@@ -28,6 +28,8 @@ interface PlanningCardProps {
   readonly patientDisplayName: string;
   readonly addressShort: string;
   readonly addressForNavigation: string;
+  readonly latitude?: number | null;
+  readonly longitude?: number | null;
   readonly estimatedClockLabel: string;
   readonly careTypeLabel: string;
   readonly etaMinutesLabel: string | null;
@@ -39,13 +41,16 @@ interface PlanningCardProps {
   readonly dragActive?: boolean;
   readonly swipeEnabled?: boolean;
   readonly onSwipeAbsent?: () => void;
-  readonly onSwipeNavigate?: (address: string) => void;
+  readonly onSwipeComplete?: () => void;
+  readonly onSwipeNavigate?: (address: string, lat?: number | null, lng?: number | null) => void;
 }
 
 export function PlanningCard({
   patientDisplayName,
   addressShort,
   addressForNavigation,
+  latitude = null,
+  longitude = null,
   estimatedClockLabel,
   careTypeLabel,
   etaMinutesLabel,
@@ -57,6 +62,7 @@ export function PlanningCard({
   dragActive = false,
   swipeEnabled = true,
   onSwipeAbsent,
+  onSwipeComplete,
   onSwipeNavigate,
 }: PlanningCardProps): React.JSX.Element {
   const swipeRef = useRef<Swipeable>(null);
@@ -76,8 +82,8 @@ export function PlanningCard({
 
   const openNavigate = (): void => {
     const addr = addressForNavigation.trim();
-    if (addr.length === 0) return;
-    onSwipeNavigate?.(addr);
+    if (addr.length === 0 && latitude == null) return;
+    onSwipeNavigate?.(addr, latitude, longitude);
     closeSwipe();
   };
 
@@ -85,6 +91,30 @@ export function PlanningCard({
     onSwipeAbsent?.();
     closeSwipe();
   };
+
+  const requestComplete = (): void => {
+    onSwipeComplete?.();
+    closeSwipe();
+  };
+
+  const canComplete = onSwipeComplete !== undefined && (status === 'pending' || status === 'in_progress');
+
+  const renderLeftActions = canComplete
+    ? (): React.JSX.Element => (
+        <View style={styles.swipeActionsLeft} accessibilityRole="toolbar">
+          <TouchableOpacity
+            style={[styles.swipeBtn, styles.swipeTerminer]}
+            onPress={requestComplete}
+            accessibilityRole="button"
+            accessibilityLabel="Marquer le soin comme terminé"
+          >
+            <Text style={styles.swipeBtnText} maxFontSizeMultiplier={1.5}>
+              Terminer
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )
+    : undefined;
 
   const renderRightActions = (): React.JSX.Element => (
     <View style={styles.swipeActions} accessibilityRole="toolbar">
@@ -231,7 +261,7 @@ export function PlanningCard({
       </Pressable>
     );
 
-  const canSwipe = swipeEnabled && onSwipeAbsent !== undefined;
+  const canSwipe = swipeEnabled && (onSwipeAbsent !== undefined || canComplete);
 
   if (!canSwipe) {
     return body;
@@ -242,8 +272,10 @@ export function PlanningCard({
       ref={swipeRef}
       enabled={swipeEnabled}
       friction={2}
-      renderRightActions={renderRightActions}
+      renderRightActions={onSwipeAbsent !== undefined ? renderRightActions : undefined}
+      renderLeftActions={renderLeftActions}
       overshootRight={false}
+      overshootLeft={false}
     >
       {body}
     </Swipeable>
@@ -258,6 +290,18 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     minHeight: 52,
+  },
+  swipeActionsLeft: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginBottom: 10,
+    borderRadius: 14,
+    overflow: 'hidden',
+    minHeight: 52,
+  },
+  swipeTerminer: {
+    backgroundColor: '#2E7D32',
+    minWidth: 90,
   },
   swipeBtn: {
     justifyContent: 'center',

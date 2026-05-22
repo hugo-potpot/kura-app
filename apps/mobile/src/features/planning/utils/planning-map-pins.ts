@@ -10,6 +10,8 @@ export interface PlanningMapPin {
   latitude: number;
   longitude: number;
   status: PlanningEntryStatus;
+  patientFirstName: string;
+  patientLastName: string;
 }
 
 export function pinColorForStatus(status: PlanningEntryStatus): string {
@@ -32,6 +34,8 @@ export function buildPlanningMapPins(visits: readonly PlanningVisitRow[]): Plann
       latitude: v.latitude,
       longitude: v.longitude,
       status: v.status,
+      patientFirstName: v.patientFirstName,
+      patientLastName: v.patientLastName,
     });
   }
   return [...out].sort((a, b) => a.orderIndex - b.orderIndex);

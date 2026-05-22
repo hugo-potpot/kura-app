@@ -731,7 +731,7 @@ export default function PatientDetailPage() {
             <div className="border border-red-200 rounded-xl bg-red-50/50 p-5">
               <h3 className="text-sm font-semibold text-red-700 mb-1 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4" />
-                Zone dangereuse
+                Attention !
               </h3>
               <p className="text-xs text-red-600 mb-4">
                 Ces actions sont irréversibles ou difficiles à annuler. Procédez avec précaution.

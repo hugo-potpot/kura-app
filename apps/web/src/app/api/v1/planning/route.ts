@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { and, eq, asc } from 'drizzle-orm';
+import { and, eq, asc, inArray } from 'drizzle-orm';
+import { z } from 'zod';
 
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -69,4 +70,55 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }));
 
   return NextResponse.json({ data: { date, entries } }, { status: 200 });
+}
+
+const PatchSchema = z.object({
+  entries: z.array(
+    z.object({
+      id: z.string().min(1),
+      status: z.enum(['in_progress', 'done', 'skipped']),
+    }),
+  ).min(1),
+});
+
+export async function PATCH(request: NextRequest): Promise<NextResponse> {
+  const session = await auth.api.getSession({ headers: request.headers });
+  const user = session?.user as { id?: string } | undefined;
+
+  if (!session || !user?.id) {
+    return NextResponse.json({ error: { code: 'UNAUTHORIZED' } }, { status: 401 });
+  }
+
+  const body = await request.json() as unknown;
+  const parsed = PatchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: { code: 'VALIDATION_ERROR', message: parsed.error.issues[0]?.message ?? 'Données invalides' } },
+      { status: 400 },
+    );
+  }
+
+  const { entries } = parsed.data;
+  const ids = entries.map((e) => e.id);
+
+  // Vérifier que toutes les entrées appartiennent à l'IDEL authentifié
+  const existing = await db
+    .select({ id: planningEntriesPg.id })
+    .from(planningEntriesPg)
+    .where(and(eq(planningEntriesPg.idelId, user.id), inArray(planningEntriesPg.id, ids)));
+
+  const ownedIds = new Set(existing.map((r) => r.id));
+  const now = new Date();
+
+  await db.transaction(async (tx) => {
+    for (const entry of entries) {
+      if (!ownedIds.has(entry.id)) continue;
+      await tx
+        .update(planningEntriesPg)
+        .set({ status: entry.status, updatedAt: now })
+        .where(eq(planningEntriesPg.id, entry.id));
+    }
+  });
+
+  return NextResponse.json({ data: { updated: ownedIds.size } }, { status: 200 });
 }

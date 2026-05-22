@@ -429,7 +429,7 @@ export function PatientDetailScreen({ patientId }: Props): React.JSX.Element {
             <View style={styles.dangerZone}>
               <View style={styles.dangerHeader}>
                 <MaterialCommunityIcons name="alert-outline" size={14} color={COLORS.error} />
-                <Text style={styles.dangerTitle}>Zone dangereuse</Text>
+                <Text style={styles.dangerTitle}>Attention !</Text>
               </View>
               <View style={styles.dangerActions}>
                 {patient.status === 'active' && (

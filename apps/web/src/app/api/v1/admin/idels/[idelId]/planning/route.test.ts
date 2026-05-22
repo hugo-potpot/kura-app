@@ -115,6 +115,24 @@ describe('GET /api/v1/admin/idels/[idelId]/planning', () => {
     expect(body.data.patients).toHaveLength(2);
     expect(body.data.planning).toHaveLength(1);
   });
+
+  it('accepte ?date= et retourne le planning pour ce jour précis', async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(ADMIN_SESSION as never);
+    const idelUser = [{ id: 'idel-1', name: 'Sophie Martin', structureId: 'struct-1', role: 'idel' }];
+    const patients = [{ id: 'p-1', firstName: 'Marie', lastName: 'Dupont', address: '1 rue X', assignedIdelId: 'idel-1' }];
+    const planning = [
+      { id: 'e-2', patientId: 'p-1', idelId: 'idel-1', date: '2026-05-26', orderIndex: 0, status: 'pending' },
+    ];
+    makeSelectSequence(idelUser, patients, planning);
+
+    const req = new NextRequest('http://localhost/api/v1/admin/idels/idel-1/planning?date=2026-05-26');
+    const res = await GET(req, { params: PARAMS });
+    expect(res.status).toBe(200);
+
+    const body = await res.json() as { data: { today: string; planning: { id: string }[] } };
+    expect(body.data.today).toBe('2026-05-26');
+    expect(body.data.planning[0]?.id).toBe('e-2');
+  });
 });
 
 describe('PUT /api/v1/admin/idels/[idelId]/planning', () => {

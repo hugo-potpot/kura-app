@@ -3,6 +3,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { planningEntries, patients } from '@kura/db';
 import { apiClient } from '@/lib/api-client';
 import type { AppDb } from '@/lib/db';
+import { applyPlanningDayEtaRecalculation } from './applyPlanningDayEtaRecalculation';
 
 interface ServerEntry {
   id: string;
@@ -31,6 +32,30 @@ export async function syncPlanningFromServer(
   idelId: string,
   dateKey: string,
 ): Promise<void> {
+  // ── 1. Push des statuts locaux modifiés (done/skipped/in_progress, syncedAt=null) ──
+  try {
+    const localAll = await db
+      .select({
+        id: planningEntries.id,
+        status: planningEntries.status,
+        syncedAt: planningEntries.syncedAt,
+      })
+      .from(planningEntries)
+      .where(and(eq(planningEntries.idelId, idelId), eq(planningEntries.date, dateKey)));
+
+    // syncedAt === null → modifié localement, pas encore poussé au serveur
+    const toPush = localAll.filter((r) => r.status !== 'pending' && r.syncedAt === null);
+
+    if (toPush.length > 0) {
+      await apiClient.patch('/api/v1/planning', {
+        entries: toPush.map((r) => ({ id: r.id, status: r.status })),
+      });
+    }
+  } catch {
+    // silencieux : offline, le statut local reste valide jusqu'à la prochaine sync
+  }
+
+  // ── 2. Pull depuis le serveur ──
   let serverEntries: ServerEntry[];
 
   try {
@@ -144,4 +169,9 @@ export async function syncPlanningFromServer(
       }
     }
   });
+
+  const hasNullEta = serverEntries.some((e) => e.etaMinutes === null);
+  if (hasNullEta) {
+    await applyPlanningDayEtaRecalculation(db, idelId, dateKey);
+  }
 }

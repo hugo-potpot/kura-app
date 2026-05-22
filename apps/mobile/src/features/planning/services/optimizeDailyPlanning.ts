@@ -31,7 +31,9 @@ export interface OptimizeDailyPlanningResult {
 
 /**
  * Recalcule NN+2-opt puis persiste `order_index`, `eta_minutes`, `updated_at`, `synced_at=null` (100 % local).
- * Les entrées `skipped` restent en fin de tournée sans participer à l’optimisation.
+ * Les entrées `done` restent en tête (positions fixes, non réordonnancées).
+ * Les entrées `pending`/`in_progress` sont optimisées après les `done`.
+ * Les entrées `skipped` restent en queue sans participer à l’optimisation.
  */
 export async function optimizeDailyPlanning(
   db: AppDb,
@@ -46,20 +48,33 @@ export async function optimizeDailyPlanning(
 
   const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
 
-  const active = rows.filter((r) => r.status !== 'skipped');
+  // Visites terminées : position fixe en tête (ordre courant préservé)
+  const done = rows
+    .filter((r) => r.status === 'done')
+    .sort((a, b) => a.orderIndex - b.orderIndex);
+  // Seules les visites non-démarrées / en cours participent à l'optimisation
+  const toOptimize = rows.filter((r) => r.status === 'pending' || r.status === 'in_progress');
   const skipped = rows
     .filter((r) => r.status === 'skipped')
     .sort((a, b) => a.orderIndex - b.orderIndex);
 
   let fullOrderedIds: string[];
-  if (active.length === 0) {
-    fullOrderedIds = skipped.map((s) => s.entryId);
+  if (toOptimize.length === 0) {
+    fullOrderedIds = [
+      ...done.map((s) => s.entryId),
+      ...skipped.map((s) => s.entryId),
+    ];
   } else {
-    const segmentsOpt = optimizeVisitOrder(planningRowsToVisitNodes(active), prefs);
-    const activeIds = [...segmentsOpt]
+    const segmentsOpt = optimizeVisitOrder(planningRowsToVisitNodes(toOptimize), prefs);
+    const optimizedIds = [...segmentsOpt]
       .sort((a, b) => a.orderIndex - b.orderIndex)
       .map((s) => s.entryId);
-    fullOrderedIds = [...activeIds, ...skipped.map((s) => s.entryId)];
+    // Ordre final : terminés (fixe) → optimisés → absents (fixe)
+    fullOrderedIds = [
+      ...done.map((s) => s.entryId),
+      ...optimizedIds,
+      ...skipped.map((s) => s.entryId),
+    ];
   }
 
   await persistManualPlanningOrder(db, idelId, dateKey, fullOrderedIds);

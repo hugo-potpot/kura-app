@@ -10,7 +10,7 @@ export function formatPlanningDateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Premier créneau fictif de la journée en minutes depuis minuit (documenté pour l’UI tant que les créneaux serveur ne sont pas là). */
+/** Premier créneau fictif de la journée en minutes depuis minuit (documenté pour l'UI tant que les créneaux serveur ne sont pas là). */
 export const PLANNING_DAY_START_MINUTES = 8 * 60;
 
 export interface EntryEtaSlice {
@@ -19,7 +19,7 @@ export interface EntryEtaSlice {
 }
 
 /**
- * Heure estimée d’arrivée : `dayStartMinutes` (défaut 08:00) + somme des `eta_minutes` des entrées strictly avant cette ligne (tri par `order_index`).
+ * Heure estimée d'arrivée : `dayStartMinutes` (défaut 08:00) + somme des `eta_minutes` des entrées strictly avant cette ligne (tri par `order_index`).
  */
 export function estimatedVisitClockMinutes(
   entryOrderIndex: number,
@@ -47,7 +47,7 @@ export function sumEtaMinutes(entries: readonly { etaMinutes: number | null }[])
 
 export const DEFAULT_CARE_TYPE_LABEL = 'Soins';
 
-/** Durée soin sur place (minutes) tant que le métier n’expose pas de durée patient (schéma évolutif). */
+/** Durée soin sur place (minutes) tant que le métier n'expose pas de durée patient (schéma évolutif). */
 export const DEFAULT_CARE_MINUTES = 30;
 
 /** Vitesse moyenne trajets urbains (km/h) — NN+2-opt transforme km → minutes de trajet. */
@@ -65,11 +65,34 @@ export function shortenAddress(address: string, maxLen = 42): string {
   return `${t.slice(0, maxLen - 1)}…`;
 }
 
-/** Ouvre l’app cartes native (story 4.4 — swipe Naviguer). */
-export function openNativeMapsNavigation(address: string): void {
-  const encoded = encodeURIComponent(address.trim());
-  if (encoded.length === 0) return;
-  const url =
-    Platform.OS === 'ios' ? `maps://?daddr=${encoded}` : `geo:0,0?q=${encoded}`;
+/** Ouvre l'app cartes native avec navigation vers la destination.
+ *  iOS : préfère le texte d'adresse (affiche le nom de rue dans Plans).
+ *  Android : préfère les coordonnées GPS (Google Navigation démarre directement). */
+export function openNativeMapsNavigation(
+  address: string,
+  lat?: number | null,
+  lng?: number | null,
+): void {
+  const cleanAddress = address.trim();
+  let url: string;
+
+  if (Platform.OS === 'ios') {
+    if (cleanAddress.length > 0) {
+      url = 'maps://?daddr=' + encodeURIComponent(cleanAddress);
+    } else if (lat != null && lng != null) {
+      url = 'maps://?daddr=' + String(lat) + ',' + String(lng);
+    } else {
+      return;
+    }
+  } else {
+    if (lat != null && lng != null) {
+      url = 'google.navigation:q=' + String(lat) + ',' + String(lng);
+    } else if (cleanAddress.length > 0) {
+      url = 'geo:0,0?q=' + encodeURIComponent(cleanAddress);
+    } else {
+      return;
+    }
+  }
+
   void Linking.openURL(url);
 }

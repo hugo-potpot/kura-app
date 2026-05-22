@@ -28,6 +28,7 @@ import { MapToggleSection } from '@/features/planning/components/MapToggleSectio
 import { UrgencyBottomSheet } from '@/features/planning/components/UrgencyBottomSheet';
 import { PlanningCard } from '@/features/planning/components/PlanningCard';
 import { useAbsentPatient } from '@/features/planning/hooks/useAbsentPatient';
+import { useCompleteVisit } from '@/features/planning/hooks/useCompleteVisit';
 import { useAddUrgency } from '@/features/planning/hooks/useAddUrgency';
 import { useOptimizePlanning } from '@/features/planning/hooks/useOptimizePlanning';
 import { usePlanningPreferences } from '@/features/planning/hooks/usePlanningPreferences';
@@ -112,6 +113,16 @@ export default function PlanningScreen(): React.JSX.Element {
   } = useAbsentPatient(refetchPlanning);
 
   const {
+    markDone,
+    doneSnackbarVisible,
+    onDoneUndoPress,
+    onDoneSnackbarDismiss,
+    doneInfoSnackbarVisible,
+    doneInfoMessage,
+    onDoneInfoDismiss,
+  } = useCompleteVisit(refetchPlanning);
+
+  const {
     candidates: urgencyCandidates,
     loadCandidates: loadUrgencyCandidates,
     suggestUrgencyInsertion,
@@ -170,7 +181,11 @@ export default function PlanningScreen(): React.JSX.Element {
 
   const navigateToNextVisit = useCallback(() => {
     if (nextNavigableVisit !== undefined) {
-      openNativeMapsNavigation(nextNavigableVisit.addressFull);
+      openNativeMapsNavigation(
+        nextNavigableVisit.addressFull,
+        nextNavigableVisit.latitude,
+        nextNavigableVisit.longitude,
+      );
     }
   }, [nextNavigableVisit]);
 
@@ -207,6 +222,8 @@ export default function PlanningScreen(): React.JSX.Element {
           patientDisplayName={patientDisplayName(v)}
           addressShort={v.addressShort}
           addressForNavigation={v.addressFull}
+          latitude={v.latitude}
+          longitude={v.longitude}
           estimatedClockLabel={formatVisitClockLabel(v, sortedEtaSlices, dayStartMinutes)}
           careTypeLabel={DEFAULT_CARE_TYPE_LABEL}
           etaMinutesLabel={formatEtaSegmentLabel(v.etaMinutes)}
@@ -220,8 +237,13 @@ export default function PlanningScreen(): React.JSX.Element {
           onSwipeAbsent={() => {
             setConfirmAbsentEntryId(v.entryId);
           }}
-          onSwipeNavigate={(addr) => {
-            openNativeMapsNavigation(addr);
+          onSwipeComplete={
+            v.status === 'pending' || v.status === 'in_progress'
+              ? () => { void markDone(v.entryId, v.status); }
+              : undefined
+          }
+          onSwipeNavigate={(addr, lat, lng) => {
+            openNativeMapsNavigation(addr, lat, lng);
           }}
         />
       </ScaleDecorator>
@@ -435,6 +457,23 @@ export default function PlanningScreen(): React.JSX.Element {
 
       <Snackbar visible={absentInfoSnackbarVisible} duration={3000} onDismiss={onAbsentInfoDismiss}>
         {absentInfoMessage}
+      </Snackbar>
+
+      <Snackbar
+        visible={doneSnackbarVisible}
+        duration={5000}
+        onDismiss={onDoneSnackbarDismiss}
+        action={{
+          label: 'Annuler',
+          accessibilityLabel: 'Annuler la fin du soin',
+          onPress: () => { void onDoneUndoPress(); },
+        }}
+      >
+        Soin terminé ✓
+      </Snackbar>
+
+      <Snackbar visible={doneInfoSnackbarVisible} duration={3000} onDismiss={onDoneInfoDismiss}>
+        {doneInfoMessage}
       </Snackbar>
 
       <Portal>
