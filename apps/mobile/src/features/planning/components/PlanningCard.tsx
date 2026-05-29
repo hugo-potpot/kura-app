@@ -193,7 +193,7 @@ export function PlanningCard({
         </View>
         {placementExplanation !== null && placementExplanation.length > 0 && (
           <View style={styles.explainRow}>
-            <MaterialCommunityIcons name="lightbulb-outline" size={13} color={COLORS.teal} />
+            <MaterialCommunityIcons name="lightbulb-outline" size={13} color={COLORS.primary} />
             <Text style={styles.explainText} maxFontSizeMultiplier={1.5}>
               {placementExplanation}
             </Text>
@@ -222,7 +222,7 @@ export function PlanningCard({
         <MaterialCommunityIcons
           name={status === 'done' ? 'check-circle' : 'progress-clock'}
           size={22}
-          color={status === 'done' ? COLORS.teal : COLORS.tealAccent}
+          color={status === 'done' ? COLORS.primary : COLORS.primary}
           style={styles.trailingIcon}
         />
       )}
@@ -413,8 +413,8 @@ const styles = StyleSheet.create({
   fallbackBadge: {
     fontSize: 10,
     fontWeight: '700',
-    color: COLORS.tealAccent,
-    backgroundColor: '#E8F8F6',
+    color: COLORS.primary,
+    backgroundColor: '#EEF2FF',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,

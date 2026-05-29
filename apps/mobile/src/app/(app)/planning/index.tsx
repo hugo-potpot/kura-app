@@ -305,7 +305,7 @@ export default function PlanningScreen(): React.JSX.Element {
 
   return (
     <View style={styles.root}>
-      <View style={[styles.header, { backgroundColor: COLORS.teal }]}>
+      <View style={[styles.header, { backgroundColor: COLORS.primaryDark }]}>
         <SafeAreaView edges={['top']}>
           <View style={styles.headerRow}>
             <View style={styles.headerLeft}>
@@ -352,7 +352,7 @@ export default function PlanningScreen(): React.JSX.Element {
 
       {isLoading && !showSkeleton && (
         <View style={styles.centerPad}>
-          <ActivityIndicator color={COLORS.teal} accessibilityLabel="Chargement du planning" />
+          <ActivityIndicator color={COLORS.primary} accessibilityLabel="Chargement du planning" />
         </View>
       )}
 
@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    backgroundColor: COLORS.teal,
+    backgroundColor: COLORS.primary,
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 22,
@@ -696,6 +696,6 @@ const styles = StyleSheet.create({
   },
   fabFab: {
     borderRadius: 16,
-    backgroundColor: '#00897B',
+    backgroundColor: COLORS.primary,
   },
 });

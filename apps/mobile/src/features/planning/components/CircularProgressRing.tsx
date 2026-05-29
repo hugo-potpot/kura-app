@@ -47,7 +47,7 @@ export function CircularProgressRing({
             cx={CENTER}
             cy={CENTER}
             r={R}
-            stroke={COLORS.tealAccent}
+            stroke="rgba(255,255,255,0.9)"
             strokeWidth={STROKE}
             fill="none"
             strokeDasharray={`${CIRC}`}

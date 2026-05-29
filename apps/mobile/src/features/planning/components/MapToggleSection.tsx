@@ -353,7 +353,7 @@ export function MapToggleSection({
 
                 {!mapReady && (
                   <View style={styles.loaderOverlay}>
-                    <ActivityIndicator color={COLORS.teal} />
+                    <ActivityIndicator color={COLORS.primary} />
                     <Text style={styles.loaderText} maxFontSizeMultiplier={1.3}>
                       Chargement de la carte…
                     </Text>
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.teal,
+    backgroundColor: COLORS.primary,
   },
   navBtnPressed: { opacity: 0.88 },
   navBtnDisabled: { backgroundColor: '#E2E8F0' },
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   nextLabel: {
-    backgroundColor: COLORS.teal,
+    backgroundColor: COLORS.primary,
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,

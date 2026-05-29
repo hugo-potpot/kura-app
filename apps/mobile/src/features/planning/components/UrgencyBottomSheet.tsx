@@ -185,7 +185,7 @@ export function UrgencyBottomSheet({
               </Button>
               <Button
                 mode="contained"
-                buttonColor="#00897B"
+                buttonColor={COLORS.primary}
                 loading={busy}
                 onPress={() => {
                   void handleConfirm();
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   suggestion: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.teal,
+    color: COLORS.primary,
     marginBottom: 16,
   },
   manualLabel: {
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { fontWeight: '700', color: '#00897B', fontSize: 14 },
+  avatarText: { fontWeight: '700', color: COLORS.primary, fontSize: 14 },
   rowMain: { flex: 1 },
   name: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
   btnMargin: { marginTop: 4 },
