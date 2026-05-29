@@ -344,7 +344,7 @@ export default function IdelDetailPage() {
           <div>
             <h1 className="text-xl font-bold text-slate-900">{idel.name}</h1>
             <div className="flex items-center gap-3 mt-1">
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full">
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-[#1e2d6b] bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
                 <Stethoscope className="w-3 h-3" />
                 IDEL
               </span>
@@ -541,7 +541,7 @@ export default function IdelDetailPage() {
                 </div>
                 <button
                   onClick={() => addToPlanning(patient.id)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors flex-shrink-0"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[#1e2d6b] bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors flex-shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Ajouter
