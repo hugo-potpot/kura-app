@@ -94,12 +94,12 @@ export function AdminSidebarClient({ navItems, userName, userRole }: AdminSideba
   return (
     <>
       {/* Desktop sidebar — always visible on lg+ */}
-      <aside className="hidden lg:flex w-64 bg-[#1e2d6b] flex-col flex-shrink-0">
+      <aside className="hidden lg:flex w-64 bg-[#3949AB] flex-col flex-shrink-0">
         <SidebarContent />
       </aside>
 
       {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 bg-[#1e2d6b] border-b border-white/10">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 bg-[#3949AB] border-b border-white/10">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 bg-white/10 rounded-md flex items-center justify-center">
             <Building2 className="w-4 h-4 text-white" />
@@ -126,7 +126,7 @@ export function AdminSidebarClient({ navItems, userName, userRole }: AdminSideba
 
       {/* Mobile sidebar drawer */}
       <aside
-        className={`lg:hidden fixed top-0 left-0 z-30 h-full w-64 bg-[#1e2d6b] flex flex-col transform transition-transform duration-200 ease-in-out ${
+        className={`lg:hidden fixed top-0 left-0 z-30 h-full w-64 bg-[#3949AB] flex flex-col transform transition-transform duration-200 ease-in-out ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
