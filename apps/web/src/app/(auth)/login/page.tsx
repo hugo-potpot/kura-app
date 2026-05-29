@@ -68,13 +68,13 @@ export default function LoginPage(): React.JSX.Element {
   return (
     <div className="flex min-h-screen">
       {/* Panneau gauche — branding (masqué sur mobile) */}
-      <div className="relative hidden flex-col items-center justify-center bg-gradient-to-b from-teal-700 to-teal-900 px-12 md:flex md:w-1/2">
+      <div className="relative hidden flex-col items-center justify-center bg-gradient-to-b from-[#1e2d6b] to-[#111b45] px-12 md:flex md:w-1/2">
         <div className="flex flex-col items-center gap-4">
           <span className="text-5xl font-bold tracking-tight text-white">KURA</span>
-          <div className="h-1 w-12 rounded bg-teal-400/50" />
-          <p className="text-center text-lg text-teal-200">Simplifiez votre quotidien d&apos;IDEL</p>
+          <div className="h-1 w-12 rounded bg-white/20" />
+          <p className="text-center text-lg text-white/70">Simplifiez votre quotidien d&apos;IDEL</p>
         </div>
-        <p className="absolute bottom-8 text-xs text-teal-300/60">© 2025 KURA</p>
+        <p className="absolute bottom-8 text-xs text-white/30">© 2025 KURA</p>
       </div>
 
       {/* Panneau droit — formulaire */}
@@ -82,7 +82,7 @@ export default function LoginPage(): React.JSX.Element {
         <div className="mx-auto w-full max-w-md">
           {/* Logo mobile uniquement */}
           <div className="mb-8 text-center md:hidden">
-            <span className="text-3xl font-bold tracking-tight text-teal-700">KURA</span>
+            <span className="text-3xl font-bold tracking-tight text-[#1e2d6b]">KURA</span>
           </div>
 
           <div className="mb-8">
@@ -120,7 +120,7 @@ export default function LoginPage(): React.JSX.Element {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Mot de passe</Label>
-                <a href="/forgot-password" className="text-xs text-teal-600 hover:underline">
+                <a href="/forgot-password" className="text-xs text-[#1e2d6b]/70 hover:text-[#1e2d6b] hover:underline">
                   Mot de passe oublié ?
                 </a>
               </div>
@@ -148,7 +148,7 @@ export default function LoginPage(): React.JSX.Element {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-10 w-full bg-teal-700 text-white hover:bg-teal-800"
+              className="h-10 w-full bg-[#1e2d6b] text-white hover:bg-[#111b45]"
             >
               {isSubmitting ? 'Connexion…' : 'Se connecter'}
             </Button>
