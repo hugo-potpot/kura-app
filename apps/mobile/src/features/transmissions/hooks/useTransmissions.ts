@@ -3,6 +3,7 @@ import { desc, eq, gte, and } from 'drizzle-orm';
 import { transmissions, patients } from '@kura/db';
 import { getDb } from '@/lib/db';
 import type { CareType } from '../services/care-type-templates';
+import { syncTransmissionsFromServer } from '../services/syncTransmissionsFromServer';
 
 export type TransmissionFilter = 'today' | 'week' | 'all';
 
@@ -21,6 +22,9 @@ async function fetchTransmissions(
   patientId: string | null,
   filter: TransmissionFilter,
 ): Promise<TransmissionRow[]> {
+  // Descente serveur → local avant lecture (échec silencieux : hors-ligne, on lit le local).
+  await syncTransmissionsFromServer().catch(() => undefined);
+
   const db = await getDb();
 
   const now = new Date();

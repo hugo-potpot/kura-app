@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useAuthStore } from '@/features/auth/stores/auth-store';
 import { getDb } from '@/lib/db';
+import { apiClient } from '@/lib/api-client';
 
 import type { PlanningVisitRow } from '../model/types';
 import { persistManualPlanningOrder } from '../services/persistManualPlanningOrder';
@@ -85,7 +86,23 @@ export function useReorderPlanning(
     async (orderedIds: readonly string[]): Promise<void> => {
       if (userId === null) return;
       const db = await getDb();
-      await persistManualPlanningOrder(db, userId, dateKey, orderedIds);
+      const ordered = await persistManualPlanningOrder(db, userId, dateKey, orderedIds);
+
+      // Push serveur : sans cela, le pull (syncPlanningFromServer) réécrirait l'order_index
+      // depuis le serveur et annulerait le déplacement. Best-effort : reste local si hors-ligne.
+      if (ordered.length > 0) {
+        try {
+          await apiClient.patch('/api/v1/planning', {
+            entries: ordered.map((e) => ({
+              id: e.id,
+              orderIndex: e.orderIndex,
+              etaMinutes: e.etaMinutes,
+            })),
+          });
+        } catch {
+          // hors-ligne : l'ordre reste local jusqu'à la prochaine synchronisation
+        }
+      }
     },
     [userId, dateKey],
   );

@@ -25,11 +25,13 @@ import { resetLocalDb } from '@/features/planning/lib/resetLocalPlanning';
 import { getDb } from '@/lib/db';
 import { CircularProgressRing } from '@/features/planning/components/CircularProgressRing';
 import { MapToggleSection } from '@/features/planning/components/MapToggleSection';
-import { UrgencyBottomSheet } from '@/features/planning/components/UrgencyBottomSheet';
 import { PlanningCard } from '@/features/planning/components/PlanningCard';
+import { LunchBreakBanner } from '@/features/planning/components/LunchBreakBanner';
+import { UrgencyBottomSheet } from '@/features/planning/components/UrgencyBottomSheet';
+import { useAddUrgency } from '@/features/planning/hooks/useAddUrgency';
+import { computeLunchBreak } from '@/features/planning/utils/planning-utils';
 import { useAbsentPatient } from '@/features/planning/hooks/useAbsentPatient';
 import { useCompleteVisit } from '@/features/planning/hooks/useCompleteVisit';
-import { useAddUrgency } from '@/features/planning/hooks/useAddUrgency';
 import { useOptimizePlanning } from '@/features/planning/hooks/useOptimizePlanning';
 import { usePlanningPreferences } from '@/features/planning/hooks/usePlanningPreferences';
 import { useReorderPlanning } from '@/features/planning/hooks/useReorderPlanning';
@@ -100,6 +102,17 @@ export default function PlanningScreen(): React.JSX.Element {
   } = usePlanningPreferences();
   const manualModePur = preferences.manualModePur;
   const dayStartMinutes = preferences.dayStartMinutes;
+  const clockOptions = useMemo(
+    () => ({
+      pauseStartMinutes: preferences.pauseStartMinutes,
+      lunchDurationMinutes: preferences.lunchDurationMinutes,
+    }),
+    [preferences.pauseStartMinutes, preferences.lunchDurationMinutes],
+  );
+  const lunchBreak = useMemo(
+    () => computeLunchBreak(sortedEtaSlices, dayStartMinutes, clockOptions),
+    [sortedEtaSlices, dayStartMinutes, clockOptions],
+  );
 
   const {
     confirmAndMarkAbsent,
@@ -131,7 +144,6 @@ export default function PlanningScreen(): React.JSX.Element {
 
   const [confirmAbsentEntryId, setConfirmAbsentEntryId] = useState<string | null>(null);
   const [urgencyOpen, setUrgencyOpen] = useState(false);
-  const [urgencyFabOpen, setUrgencyFabOpen] = useState(false);
 
   const listRef = useRef<FlatList<PlanningVisitRow>>(null);
 
@@ -218,13 +230,19 @@ export default function PlanningScreen(): React.JSX.Element {
       isActive: boolean;
     }): React.ReactNode => (
       <ScaleDecorator activeScale={1.015}>
+        {lunchBreak !== null && !isActive && v.orderIndex === lunchBreak.beforeOrderIndex ? (
+          <LunchBreakBanner
+            startMinutes={lunchBreak.startMinutes}
+            durationMinutes={lunchBreak.durationMinutes}
+          />
+        ) : null}
         <PlanningCard
           patientDisplayName={patientDisplayName(v)}
           addressShort={v.addressShort}
           addressForNavigation={v.addressFull}
           latitude={v.latitude}
           longitude={v.longitude}
-          estimatedClockLabel={formatVisitClockLabel(v, sortedEtaSlices, dayStartMinutes)}
+          estimatedClockLabel={formatVisitClockLabel(v, sortedEtaSlices, dayStartMinutes, clockOptions)}
           careTypeLabel={DEFAULT_CARE_TYPE_LABEL}
           etaMinutesLabel={formatEtaSegmentLabel(v.etaMinutes)}
           status={v.status}
@@ -248,7 +266,7 @@ export default function PlanningScreen(): React.JSX.Element {
         />
       </ScaleDecorator>
     ),
-    [dayStartMinutes, explanationByEntryId, sortedEtaSlices],
+    [dayStartMinutes, clockOptions, lunchBreak, explanationByEntryId, sortedEtaSlices],
   );
 
   const listHeader = (
@@ -268,6 +286,7 @@ export default function PlanningScreen(): React.JSX.Element {
           Cette semaine
         </Chip>
       </View>
+
 
       {totalVisits > 0 && !manualModePur && (
         <View style={styles.optimizeRow}>
@@ -531,27 +550,26 @@ export default function PlanningScreen(): React.JSX.Element {
       />
 
       {!showSkeleton && (
-        <FAB.Group
-          open={urgencyFabOpen}
-          visible
-          icon={urgencyFabOpen ? 'close' : 'plus'}
-          actions={[
-            {
-              icon: 'ambulance',
-              label: 'Ajouter une urgence',
-              onPress: (): void => {
-                setUrgencyFabOpen(false);
-                setUrgencyOpen(true);
-              },
-            },
-          ]}
-          onStateChange={({ open }): void => {
-            setUrgencyFabOpen(open);
-          }}
-          style={styles.fabGroup}
-          fabStyle={styles.fabFab}
-          color="#fff"
-        />
+        <>
+          <FAB
+            visible
+            icon="ambulance"
+            onPress={() => { setUrgencyOpen(true); }}
+            style={styles.urgencyFab}
+            color="#fff"
+            accessibilityLabel="Ajouter une urgence à la tournée"
+          />
+          <FAB
+            visible
+            icon="navigation-variant"
+            label="Patient suivant"
+            onPress={navigateToNextVisit}
+            disabled={nextNavigableVisit === undefined}
+            style={[styles.fabGroup, styles.fabFab]}
+            color="#fff"
+            accessibilityLabel="Lancer la navigation vers le prochain patient"
+          />
+        </>
       )}
     </View>
   );
@@ -613,6 +631,13 @@ const styles = StyleSheet.create({
     marginHorizontal: -16,
   },
   filterChip: { borderRadius: 20 },
+  urgencyFab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 96,
+    borderRadius: 16,
+    backgroundColor: COLORS.error,
+  },
   optimizeRow: {
     paddingHorizontal: 16,
     marginBottom: 6,

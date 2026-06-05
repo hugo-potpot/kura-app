@@ -3,7 +3,7 @@ jest.mock('../lib/fetchPlanningRows', () => ({
 }));
 
 jest.mock('./persistManualPlanningOrder', () => ({
-  persistManualPlanningOrder: jest.fn().mockResolvedValue(undefined),
+  persistManualPlanningOrder: jest.fn().mockResolvedValue([]),
 }));
 
 import { fetchPlanningVisitsForDate } from '../lib/fetchPlanningRows';

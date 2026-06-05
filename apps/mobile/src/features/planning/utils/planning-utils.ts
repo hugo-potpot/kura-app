@@ -18,20 +18,75 @@ export interface EntryEtaSlice {
   etaMinutes: number | null;
 }
 
+/** Options horaires issues des préférences IDEL pour le calcul des heures d'arrivée. */
+export interface VisitClockOptions {
+  /** Créneau (minutes depuis minuit) à partir duquel la pause déjeuner est insérée. */
+  pauseStartMinutes?: number;
+  /** Durée de la pause déjeuner en minutes (0 = pas de pause). */
+  lunchDurationMinutes?: number;
+}
+
 /**
- * Heure estimée d'arrivée : `dayStartMinutes` (défaut 08:00) + somme des `eta_minutes` des entrées strictly avant cette ligne (tri par `order_index`).
+ * Heure estimée d'arrivée : `dayStartMinutes` (défaut 08:00) + cumul des `eta_minutes`
+ * des visites précédentes (tri par `order_index`), en insérant la pause déjeuner dès
+ * que l'heure d'arrivée atteint `pauseStartMinutes` — exactement comme l'optimiseur de tournée.
  */
 export function estimatedVisitClockMinutes(
   entryOrderIndex: number,
   sortedEntries: EntryEtaSlice[],
   dayStartMinutes: number = PLANNING_DAY_START_MINUTES,
+  options?: VisitClockOptions,
 ): number {
-  let cum = 0;
+  const lunchDurationMinutes = options?.lunchDurationMinutes ?? 0;
+  const pauseStartMinutes = options?.pauseStartMinutes ?? Number.POSITIVE_INFINITY;
+
+  let cum = dayStartMinutes;
+  let lunchInserted = false;
+
   for (const e of sortedEntries) {
+    // Pause déjeuner insérée avant la visite dont l'arrivée atteint le créneau de pause.
+    if (!lunchInserted && lunchDurationMinutes > 0 && cum >= pauseStartMinutes) {
+      cum += lunchDurationMinutes;
+      lunchInserted = true;
+    }
     if (e.orderIndex >= entryOrderIndex) break;
     cum += e.etaMinutes ?? 0;
   }
-  return dayStartMinutes + cum;
+  return cum;
+}
+
+/** Description de la pause déjeuner intercalée dans la tournée, pour l'affichage. */
+export interface LunchBreakInfo {
+  /** orderIndex de la visite AVANT laquelle la pause s'insère. */
+  beforeOrderIndex: number;
+  /** Heure de début de la pause (minutes depuis minuit). */
+  startMinutes: number;
+  /** Durée de la pause en minutes. */
+  durationMinutes: number;
+}
+
+/**
+ * Détermine où la pause déjeuner s'insère dans la tournée — même règle que l'optimiseur :
+ * avant la première visite dont l'heure d'arrivée atteint `pauseStartMinutes`.
+ * Retourne `null` si pas de pause configurée ou si elle tombe après la dernière visite.
+ */
+export function computeLunchBreak(
+  sortedEntries: EntryEtaSlice[],
+  dayStartMinutes: number = PLANNING_DAY_START_MINUTES,
+  options?: VisitClockOptions,
+): LunchBreakInfo | null {
+  const lunchDurationMinutes = options?.lunchDurationMinutes ?? 0;
+  const pauseStartMinutes = options?.pauseStartMinutes ?? Number.POSITIVE_INFINITY;
+  if (lunchDurationMinutes <= 0) return null;
+
+  let cum = dayStartMinutes;
+  for (const e of sortedEntries) {
+    if (cum >= pauseStartMinutes) {
+      return { beforeOrderIndex: e.orderIndex, startMinutes: cum, durationMinutes: lunchDurationMinutes };
+    }
+    cum += e.etaMinutes ?? 0;
+  }
+  return null;
 }
 
 export function minutesToClockLabel(totalMinutes: number): string {

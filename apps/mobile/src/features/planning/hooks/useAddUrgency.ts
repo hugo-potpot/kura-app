@@ -1,10 +1,12 @@
 import { useCallback, useState } from 'react';
-import { and, eq, notInArray } from 'drizzle-orm';
+import { and, eq, notInArray, sql } from 'drizzle-orm';
 import { planningEntries, patients } from '@kura/db';
 import { generateId } from '@kura/shared';
 
 import { useAuthStore } from '@/features/auth/stores/auth-store';
 import { getDb } from '@/lib/db';
+import { apiClient } from '@/lib/api-client';
+import type { Patient } from '@kura/shared';
 
 import { findOptimalInsertionIndex } from '../algorithm/tsp-optimizer';
 import { fetchPlanningVisitsForDate } from '../lib/fetchPlanningRows';
@@ -80,12 +82,76 @@ export function useAddUrgency(refetchPlanning: () => void): UseAddUrgencyResult 
     const db = await getDb();
     const planned = await fetchPlanningVisitsForDate(db, userId, dateKey);
     const plannedIds = planned.map((p) => p.patientId);
+    const plannedSet = new Set(plannedIds);
+
+    // Source primaire : serveur. La route /patients filtre déjà par assignedIdelId
+    // pour le rôle idel (le SQLite local ne synchronise pas assignedIdelId).
+    try {
+      const res = await apiClient.get<{ data: { patients: Patient[] } }>(
+        '/api/v1/patients?status=active',
+      );
+      const serverPatients = res.data.data.patients;
+
+      // Upsert local des patients : nécessaire pour que l'ajout au planning (innerJoin patients)
+      // fonctionne, et renseigne assignedIdelId en local (repli hors-ligne).
+      if (serverPatients.length > 0) {
+        const upsertNow = new Date();
+        await db
+          .insert(patients)
+          .values(
+            serverPatients.map((p) => ({
+              id: p.id,
+              structureId: p.structureId,
+              firstName: p.firstName,
+              lastName: p.lastName,
+              address: p.address,
+              latitude: p.latitude,
+              longitude: p.longitude,
+              phone: p.phone,
+              treatingDoctor: p.treatingDoctor,
+              assignedIdelId: p.assignedIdelId,
+              status: p.status,
+              createdAt: new Date(p.createdAt),
+              updatedAt: new Date(p.updatedAt),
+              syncedAt: upsertNow,
+            })),
+          )
+          .onConflictDoUpdate({
+            target: patients.id,
+            set: {
+              firstName: sql`excluded.first_name`,
+              lastName: sql`excluded.last_name`,
+              address: sql`excluded.address`,
+              latitude: sql`excluded.latitude`,
+              longitude: sql`excluded.longitude`,
+              assignedIdelId: sql`excluded.assigned_idel_id`,
+              status: sql`excluded.status`,
+              updatedAt: sql`excluded.updated_at`,
+              syncedAt: sql`excluded.synced_at`,
+            },
+          });
+      }
+
+      setCandidates(
+        serverPatients
+          .filter((p) => !plannedSet.has(p.id))
+          .map((p) => ({
+            id: p.id,
+            firstName: p.firstName,
+            lastName: p.lastName,
+            latitude: p.latitude,
+            longitude: p.longitude,
+          })),
+      );
+      return;
+    } catch {
+      // Repli hors-ligne : patients locaux assignés (peut être vide si non synchronisés).
+    }
 
     const baseCond = and(
       eq(patients.assignedIdelId, userId),
       eq(patients.status, 'active'),
     );
-
     const rows =
       plannedIds.length === 0
         ? await db
@@ -162,6 +228,24 @@ export function useAddUrgency(refetchPlanning: () => void): UseAddUrgencyResult 
       });
 
       await persistManualPlanningOrder(db, userId, dateKey, newOrderedIds);
+
+      // Persistance serveur : sans push, le sync suivant supprimerait l'entrée locale
+      // (pending + syncedAt null absente du serveur). Best-effort : reste local si hors-ligne.
+      try {
+        await apiClient.post('/api/v1/planning', {
+          id: newId,
+          patientId,
+          date: dateKey,
+          orderIndex: clamped,
+        });
+        await db
+          .update(planningEntries)
+          .set({ syncedAt: new Date() })
+          .where(eq(planningEntries.id, newId));
+      } catch {
+        // hors-ligne : l'entrée reste locale jusqu'à la prochaine synchronisation
+      }
+
       markManualReorder();
       refetchPlanning();
     },

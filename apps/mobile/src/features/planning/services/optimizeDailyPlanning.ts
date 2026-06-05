@@ -6,6 +6,8 @@ import {
   type PlanningDayTimelinePrefs,
   type VisitNode,
 } from '../algorithm/tsp-optimizer';
+import { apiClient } from '@/lib/api-client';
+
 import { fetchPlanningVisitsForDate } from '../lib/fetchPlanningRows';
 import type { PlanningVisitRow } from '../model/types';
 import { persistManualPlanningOrder } from './persistManualPlanningOrder';
@@ -77,7 +79,22 @@ export async function optimizeDailyPlanning(
     ];
   }
 
-  await persistManualPlanningOrder(db, idelId, dateKey, fullOrderedIds);
+  const ordered = await persistManualPlanningOrder(db, idelId, dateKey, fullOrderedIds);
+
+  // Push serveur : sans cela, le pull réécrirait l'ordre optimisé depuis le serveur.
+  if (ordered.length > 0) {
+    try {
+      await apiClient.patch('/api/v1/planning', {
+        entries: ordered.map((e) => ({
+          id: e.id,
+          orderIndex: e.orderIndex,
+          etaMinutes: e.etaMinutes,
+        })),
+      });
+    } catch {
+      // hors-ligne : l'ordre optimisé reste local jusqu'à la prochaine synchronisation
+    }
+  }
 
   const refreshed = await fetchPlanningVisitsForDate(db, idelId, dateKey);
   const segmentByEntryId = new Map<

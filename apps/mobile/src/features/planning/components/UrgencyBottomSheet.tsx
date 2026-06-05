@@ -5,6 +5,7 @@ import {
   FlatList,
   Pressable,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import {
   Modal,
@@ -53,6 +54,9 @@ export function UrgencyBottomSheet({
   const [suggestion, setSuggestion] = useState<UrgencySuggestion | null>(null);
   const [manualOrdinal, setManualOrdinal] = useState('1');
   const [busy, setBusy] = useState(false);
+
+  const { height: windowHeight } = useWindowDimensions();
+  const listMaxHeight = Math.round(windowHeight * 0.55);
 
   useEffect(() => {
     if (visible) {
@@ -117,7 +121,7 @@ export function UrgencyBottomSheet({
             <FlatList
               data={[...candidates]}
               keyExtractor={(item) => item.id}
-              style={styles.list}
+              style={[styles.list, { maxHeight: listMaxHeight }]}
               ListEmptyComponent={
                 <Text style={styles.empty} maxFontSizeMultiplier={1.5}>
                   Aucun patient disponible.
@@ -206,11 +210,12 @@ export function UrgencyBottomSheet({
 const styles = StyleSheet.create({
   modalBox: {
     backgroundColor: COLORS.white,
-    marginHorizontal: 20,
-    marginTop: Platform.OS === 'ios' ? 80 : 48,
+    marginHorizontal: 16,
+    marginTop: Platform.OS === 'ios' ? 56 : 32,
+    marginBottom: Platform.OS === 'ios' ? 40 : 24,
     padding: 20,
     borderRadius: 16,
-    maxHeight: '88%',
+    maxHeight: '90%',
   },
   title: {
     fontSize: 18,
@@ -239,7 +244,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: COLORS.white,
   },
-  list: { maxHeight: 360, marginBottom: 8 },
+  list: { marginBottom: 8 },
   empty: { padding: 16, color: COLORS.textMuted, textAlign: 'center' },
   row: {
     flexDirection: 'row',

@@ -1,10 +1,44 @@
 import { NextResponse } from 'next/server';
-import { eq, inArray } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { transmissionsPg, patientsPg } from '@kura/db';
+
+/**
+ * Liste les transmissions de la structure de l'utilisateur (descente serveur → mobile).
+ * Bornée aux patients de la structure (isolation multi-tenant).
+ */
+export async function GET(req: Request): Promise<NextResponse> {
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session) {
+    return NextResponse.json({ error: { code: 'UNAUTHORIZED' } }, { status: 401 });
+  }
+  const user = session.user as { id?: string; structureId?: string | null };
+  if (!user.structureId) {
+    return NextResponse.json({ error: { code: 'NO_STRUCTURE' } }, { status: 403 });
+  }
+
+  const rows = await db
+    .select({
+      id: transmissionsPg.id,
+      patientId: transmissionsPg.patientId,
+      authorId: transmissionsPg.authorId,
+      contentOriginal: transmissionsPg.contentOriginal,
+      contentValidated: transmissionsPg.contentValidated,
+      careType: transmissionsPg.careType,
+      createdAt: transmissionsPg.createdAt,
+      updatedAt: transmissionsPg.updatedAt,
+    })
+    .from(transmissionsPg)
+    .innerJoin(patientsPg, eq(transmissionsPg.patientId, patientsPg.id))
+    .where(eq(patientsPg.structureId, user.structureId))
+    .orderBy(desc(transmissionsPg.createdAt))
+    .limit(500);
+
+  return NextResponse.json({ data: { transmissions: rows } });
+}
 
 const transmissionSchema = z.object({
   id: z.string(),

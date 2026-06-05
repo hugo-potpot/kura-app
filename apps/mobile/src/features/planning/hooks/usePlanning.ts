@@ -14,6 +14,7 @@ import {
   sortEntryEtaSlices,
   sumEtaMinutes,
   type EntryEtaSlice,
+  type VisitClockOptions,
 } from '../utils/planning-utils';
 import { buildPlanningMapPins } from '../utils/planning-map-pins';
 
@@ -138,8 +139,9 @@ export function formatVisitClockLabel(
   visit: PlanningVisitRow,
   sortedSlices: EntryEtaSlice[],
   dayStartMinutes?: number,
+  options?: VisitClockOptions,
 ): string {
-  const mins = estimatedVisitClockMinutes(visit.orderIndex, sortedSlices, dayStartMinutes);
+  const mins = estimatedVisitClockMinutes(visit.orderIndex, sortedSlices, dayStartMinutes, options);
   return minutesToClockLabel(mins);
 }
 

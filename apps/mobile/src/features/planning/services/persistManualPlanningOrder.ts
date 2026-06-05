@@ -23,14 +23,20 @@ export function planningRowsToVisitNodes(rows: readonly PlanningVisitRow[]): Vis
 /**
  * Persistance bulk : `order_index`, `eta_minutes`, `updated_at`, `synced_at = null` pour l’ordre manuel.
  */
+export interface PersistedPlanningEntry {
+  id: string;
+  orderIndex: number;
+  etaMinutes: number | null;
+}
+
 export async function persistManualPlanningOrder(
   db: AppDb,
   idelId: string,
   dateKey: string,
   orderedEntryIds: readonly string[],
-): Promise<void> {
+): Promise<PersistedPlanningEntry[]> {
   const rows = await fetchPlanningVisitsForDate(db, idelId, dateKey);
-  if (rows.length === 0) return;
+  if (rows.length === 0) return [];
 
   const byId = new Map(rows.map((r) => [r.entryId, r]));
 
@@ -72,5 +78,10 @@ export async function persistManualPlanningOrder(
           ),
         );
     }
+  });
+
+  return orderedEntryIds.map((id) => {
+    const seg = segmentByEntry.get(id)!;
+    return { id, orderIndex: seg.orderIndex, etaMinutes: seg.etaMinutes };
   });
 }
