@@ -5,8 +5,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, AlertCircle, MapPin, User, Phone, Stethoscope, Activity, Archive, Trash2, X } from 'lucide-react';
+import { ArrowLeft, AlertCircle, MapPin, User, Phone, Stethoscope, Activity, Archive, Trash2, X, ClipboardList, Cloud, CloudOff } from 'lucide-react';
 import { AddressAutocomplete, type AddressCoords } from '@/components/ui/address-autocomplete';
+import { VitalSignsChart, type VitalSignPoint } from '@/components/patients/VitalSignsChart';
 
 interface Patient {
   id: string;
@@ -21,6 +22,68 @@ interface Patient {
   createdAt: string;
   updatedAt: string;
 }
+
+interface VitalSign {
+  id: string;
+  patientId: string;
+  measuredAt: string;
+  systolic: number | null;
+  diastolic: number | null;
+  glycemia: number | null;
+  weight: number | null;
+  temperature: number | null;
+  spo2: number | null;
+}
+
+type ConstanteKey = 'tension' | 'glycemia' | 'weight' | 'temperature' | 'spo2';
+type VitalSignRange = '7d' | '30d' | '6m';
+
+type CareType = 'toilette' | 'pansement' | 'injection' | 'constantes' | 'autre';
+
+interface Transmission {
+  id: string;
+  patientId: string;
+  authorId: string;
+  authorName: string | null;
+  contentValidated: string;
+  careType: CareType;
+  createdAt: string;
+  syncedAt: string | null;
+}
+
+const CARE_TYPE_LABELS: Record<CareType, string> = {
+  toilette: 'Toilette',
+  pansement: 'Pansement',
+  injection: 'Injection',
+  constantes: 'Constantes',
+  autre: 'Autre',
+};
+
+const CARE_TYPE_COLORS: Record<CareType, { text: string; bg: string; border: string }> = {
+  toilette:   { text: 'text-indigo-700',  bg: 'bg-indigo-50',  border: 'border-indigo-200' },
+  pansement:  { text: 'text-violet-700',  bg: 'bg-violet-50',  border: 'border-violet-200' },
+  injection:  { text: 'text-red-700',     bg: 'bg-red-50',     border: 'border-red-200' },
+  constantes: { text: 'text-rose-700',    bg: 'bg-rose-50',    border: 'border-rose-200' },
+  autre:      { text: 'text-slate-600',   bg: 'bg-slate-50',   border: 'border-slate-200' },
+};
+
+interface ConstanteConfig {
+  label: string;
+  field: keyof Pick<VitalSign, 'systolic' | 'glycemia' | 'weight' | 'temperature' | 'spo2'>;
+  unit: string;
+  normalRange?: { min: number; max: number };
+  alertRange?: { min: number; max: number };
+}
+
+const CONSTANTE_CONFIG: Record<ConstanteKey, ConstanteConfig> = {
+  tension:     { label: 'Tension',      field: 'systolic',    unit: 'mmHg',   normalRange: { min: 90,  max: 139 }, alertRange: { min: 80,  max: 180 } },
+  glycemia:    { label: 'Glycémie',     field: 'glycemia',    unit: 'mmol/L', normalRange: { min: 3.9, max: 7.8 }, alertRange: { min: 2.5, max: 11.0 } },
+  weight:      { label: 'Poids',        field: 'weight',      unit: 'kg' },
+  temperature: { label: 'Température',  field: 'temperature', unit: '°C',     normalRange: { min: 36.0, max: 37.5 }, alertRange: { min: 35.0, max: 38.5 } },
+  spo2:        { label: 'SpO2',         field: 'spo2',        unit: '%',      normalRange: { min: 95, max: 100 },    alertRange: { min: 90, max: 100 } },
+};
+
+const RANGE_LABELS: Record<VitalSignRange, string> = { '7d': '7 jours', '30d': '30 jours', '6m': '6 mois' };
 
 const updatePatientSchema = z.object({
   firstName: z.string().min(1, 'Prénom requis').max(100).optional(),
@@ -239,13 +302,21 @@ export default function PatientDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'info' | 'constantes'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'constantes' | 'transmissions'>('info');
   const [addressCoords, setAddressCoords] = useState<AddressCoords | null>(null);
 
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [retentionWarning, setRetentionWarning] = useState(false);
+
+  const [vitalSigns, setVitalSigns] = useState<VitalSign[]>([]);
+  const [vsLoading, setVsLoading] = useState(false);
+  const [selectedConstante, setSelectedConstante] = useState<ConstanteKey>('tension');
+  const [selectedRange, setSelectedRange] = useState<VitalSignRange>('30d');
+
+  const [transmissions, setTransmissions] = useState<Transmission[]>([]);
+  const [txLoading, setTxLoading] = useState(false);
 
   // Detect role from session — fetched lazily via existing /api/v1/me or fallback
   const [isDoctor, setIsDoctor] = useState(false);
@@ -301,6 +372,42 @@ export default function PatientDetailPage() {
     void load();
     void loadRole();
   }, [patientId, reset]);
+
+  useEffect(() => {
+    if (activeTab !== 'transmissions') return;
+    async function loadTx() {
+      setTxLoading(true);
+      try {
+        const res = await fetch(`/api/v1/patients/${patientId}/transmissions`);
+        if (!res.ok) return;
+        const json = await res.json() as { data?: { transmissions?: Transmission[] } };
+        setTransmissions(json.data?.transmissions ?? []);
+      } catch {
+        /* silent */
+      } finally {
+        setTxLoading(false);
+      }
+    }
+    void loadTx();
+  }, [activeTab, patientId]);
+
+  useEffect(() => {
+    if (activeTab !== 'constantes') return;
+    async function loadVS() {
+      setVsLoading(true);
+      try {
+        const res = await fetch(`/api/v1/patients/${patientId}/vital-signs?range=${selectedRange}`);
+        if (!res.ok) return;
+        const json = await res.json() as { data?: { vitalSigns?: VitalSign[] } };
+        setVitalSigns(json.data?.vitalSigns ?? []);
+      } catch {
+        /* silent */
+      } finally {
+        setVsLoading(false);
+      }
+    }
+    void loadVS();
+  }, [activeTab, patientId, selectedRange]);
 
   async function handleArchive() {
     setActionLoading(true);
@@ -468,15 +575,129 @@ export default function PatientDetailPage() {
               >
                 Constantes
               </button>
+              <button
+                onClick={() => setActiveTab('transmissions')}
+                className={`pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
+                  activeTab === 'transmissions'
+                    ? 'border-[#1e2d6b] text-[#1e2d6b]'
+                    : 'border-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <ClipboardList className="w-3.5 h-3.5" />
+                Transmissions
+              </button>
             </div>
           </div>
 
-          {activeTab === 'constantes' ? (
-            <div className="bg-white rounded-xl border border-slate-200 px-6 py-12 text-center">
-              <Activity className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500 text-sm">
-                L&apos;onglet Constantes sera disponible dans une prochaine version.
-              </p>
+          {activeTab === 'transmissions' ? (
+            <div className="space-y-3">
+              {txLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#1e2d6b]" />
+                </div>
+              ) : transmissions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3 text-slate-400">
+                  <ClipboardList className="w-10 h-10" />
+                  <p className="text-sm font-medium">Aucune transmission pour ce patient</p>
+                  <p className="text-xs">Les transmissions saisies sur l&apos;application mobile apparaîtront ici.</p>
+                </div>
+              ) : (
+                transmissions.map((tx) => {
+                  const colors = CARE_TYPE_COLORS[tx.careType] ?? CARE_TYPE_COLORS['autre'];
+                  const date = new Date(tx.createdAt);
+                  return (
+                    <div key={tx.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                      <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-100 bg-slate-50/60">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${colors.bg} ${colors.text} ${colors.border}`}>
+                          {CARE_TYPE_LABELS[tx.careType]}
+                        </span>
+                        <span className="text-xs text-slate-500 flex-1">
+                          {date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                          {' · '}
+                          {date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        {tx.authorName && (
+                          <span className="text-xs text-slate-400">{tx.authorName}</span>
+                        )}
+                        <span className={`inline-flex items-center gap-1 text-xs font-medium ${tx.syncedAt ? 'text-emerald-600' : 'text-amber-600'}`}>
+                          {tx.syncedAt
+                            ? <><Cloud className="w-3 h-3" /> Synchronisée</>
+                            : <><CloudOff className="w-3 h-3" /> En attente</>
+                          }
+                        </span>
+                      </div>
+                      <p className="px-5 py-4 text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{tx.contentValidated}</p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          ) : activeTab === 'constantes' ? (
+            <div className="space-y-4">
+              {/* Sélecteurs */}
+              <div className="flex flex-wrap items-center gap-6">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {(Object.keys(CONSTANTE_CONFIG) as ConstanteKey[]).map((key) => (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedConstante(key)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                        selectedConstante === key
+                          ? 'bg-[#1e2d6b] text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {CONSTANTE_CONFIG[key].label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 ml-auto">
+                  {(Object.keys(RANGE_LABELS) as VitalSignRange[]).map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setSelectedRange(r)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                        selectedRange === r
+                          ? 'bg-slate-700 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {RANGE_LABELS[r]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Graphique */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-6 py-5">
+                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+                  <Activity className="w-4 h-4 text-slate-400" />
+                  <h2 className="text-sm font-semibold text-slate-700">
+                    {CONSTANTE_CONFIG[selectedConstante].label}
+                    <span className="font-normal text-slate-400 ml-1">({CONSTANTE_CONFIG[selectedConstante].unit})</span>
+                  </h2>
+                </div>
+
+                {vsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#1e2d6b]" />
+                  </div>
+                ) : (
+                  <VitalSignsChart
+                    dataPoints={
+                      vitalSigns
+                        .filter((vs) => vs[CONSTANTE_CONFIG[selectedConstante].field] !== null)
+                        .map((vs): VitalSignPoint => ({
+                          value: vs[CONSTANTE_CONFIG[selectedConstante].field] as number,
+                          date: new Date(vs.measuredAt),
+                        }))
+                    }
+                    unit={CONSTANTE_CONFIG[selectedConstante].unit}
+                    normalRange={CONSTANTE_CONFIG[selectedConstante].normalRange}
+                    alertRange={CONSTANTE_CONFIG[selectedConstante].alertRange}
+                  />
+                )}
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -552,20 +773,6 @@ export default function PatientDetailPage() {
                       <p className="text-xs text-red-500 mt-1">{errors.address.message}</p>
                     )}
                   </div>
-                  <div className="flex gap-4">
-                    <div className="flex-1">
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Latitude</label>
-                      <p className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-500">
-                        {addressCoords ? addressCoords.lat.toFixed(6) : patient.latitude !== null ? patient.latitude.toFixed(6) : '—'}
-                      </p>
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Longitude</label>
-                      <p className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg text-slate-500">
-                        {addressCoords ? addressCoords.lng.toFixed(6) : patient.longitude !== null ? patient.longitude.toFixed(6) : '—'}
-                      </p>
-                    </div>
-                  </div>
                   {patient.latitude === null && (
                     <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
                       <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -628,7 +835,7 @@ export default function PatientDetailPage() {
             <div className="border border-red-200 rounded-xl bg-red-50/50 p-5">
               <h3 className="text-sm font-semibold text-red-700 mb-1 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4" />
-                Zone dangereuse
+                Attention !
               </h3>
               <p className="text-xs text-red-600 mb-4">
                 Ces actions sont irréversibles ou difficiles à annuler. Procédez avec précaution.

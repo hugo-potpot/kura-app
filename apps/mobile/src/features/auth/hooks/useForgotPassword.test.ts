@@ -5,6 +5,7 @@ jest.mock('../../../lib/api-client', () => ({
   apiClient: {
     post: jest.fn(),
   },
+  getApiBaseUrl: () => 'http://localhost:3000',
 }));
 
 import { apiClient } from '../../../lib/api-client';

@@ -2,14 +2,12 @@ import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
+import { getDb } from '@/lib/db';
+
+const mockInsert = jest.fn();
+
 jest.mock('@/lib/db', () => ({
-  db: {
-    insert: jest.fn(),
-    update: jest.fn(() => ({
-      set: jest.fn().mockReturnThis(),
-      where: jest.fn().mockResolvedValue([]),
-    })),
-  },
+  getDb: jest.fn(),
 }));
 
 jest.mock('@kura/db', () => ({
@@ -29,8 +27,9 @@ jest.mock('drizzle-orm', () => ({
   eq: jest.fn((col, val) => ({ col, val })),
 }));
 
-import { db } from '@/lib/db';
 import { useCreatePatient } from './useCreatePatient';
+
+const mockGetDb = getDb as jest.MockedFunction<typeof getDb>;
 
 function makeWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
@@ -51,12 +50,22 @@ function makeInsertChain(returnValue: unknown) {
     values: jest.fn().mockReturnThis(),
     returning: jest.fn().mockResolvedValue(returnValue),
   };
-  jest.mocked(db.insert).mockReturnValue(chain as never);
+  mockInsert.mockReturnValue(chain as never);
   return chain;
 }
 
 describe('useCreatePatient', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    mockInsert.mockClear();
+    mockGetDb.mockReset();
+    mockGetDb.mockResolvedValue({
+      insert: mockInsert,
+      update: jest.fn(() => ({
+        set: jest.fn().mockReturnThis(),
+        where: jest.fn().mockResolvedValue([]),
+      })),
+    });
+  });
 
   it('insère le patient dans SQLite et retourne le patient créé', async () => {
     const mockPatient = { id: 'mock-id-001', ...INPUT, latitude: null, longitude: null, status: 'active', createdAt: new Date(), updatedAt: new Date(), syncedAt: null, phone: null, treatingDoctor: null };
@@ -70,7 +79,7 @@ describe('useCreatePatient', () => {
     });
 
     expect(patient?.id).toBe('mock-id-001');
-    expect(db.insert).toHaveBeenCalledTimes(2); // patients + syncQueue
+    expect(mockInsert).toHaveBeenCalledTimes(2); // patients + syncQueue
   });
 
   it('passe en état error si l\'insertion échoue', async () => {
@@ -78,7 +87,7 @@ describe('useCreatePatient', () => {
       values: jest.fn().mockReturnThis(),
       returning: jest.fn().mockRejectedValue(new Error('DB error')),
     };
-    jest.mocked(db.insert).mockReturnValue(chain as never);
+    mockInsert.mockReturnValue(chain as never);
 
     const { result } = renderHook(() => useCreatePatient(), { wrapper: makeWrapper() });
 

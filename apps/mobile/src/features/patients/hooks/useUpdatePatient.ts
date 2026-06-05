@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 
 import { patients, syncQueue } from '@kura/db';
 import { generateId } from '@kura/shared';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 
 export interface UpdatePatientInput {
   id: string;
@@ -17,6 +17,7 @@ export interface UpdatePatientInput {
 }
 
 async function updatePatient(input: UpdatePatientInput): Promise<typeof patients.$inferSelect> {
+  const db = await getDb();
   const { id, ...updates } = input;
   const now = new Date();
 

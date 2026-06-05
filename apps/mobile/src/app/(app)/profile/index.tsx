@@ -2,6 +2,7 @@ import { Alert, ScrollView, View, StyleSheet, TouchableOpacity, Platform } from 
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 import { useAuthStore } from '@/features/auth/stores/auth-store';
 import { useLogout } from '@/features/auth/hooks/useLogout';
@@ -71,6 +72,7 @@ function SettingsGroup({ title, children }: { title: string; children: React.Rea
 export default function ProfileScreen(): React.JSX.Element {
   const user = useAuthStore((state) => state.user);
   const { logout, logoutAllDevices, isLoading } = useLogout();
+  const router = useRouter();
   const initials = getInitials(user?.name ?? 'U');
 
   const handleLogoutAllDevices = (): void => {
@@ -114,8 +116,14 @@ export default function ProfileScreen(): React.JSX.Element {
           <SettingsRow
             icon="lock-outline"
             label="Modifier le mot de passe"
-            isLast
             onPress={() => {}}
+          />
+          <SettingsRow
+            icon="calendar-clock-outline"
+            label="Préférences planning"
+            sublabel="Horaires, pauses, zones"
+            isLast
+            onPress={() => { router.push('/profile/planning-preferences'); }}
           />
         </SettingsGroup>
 

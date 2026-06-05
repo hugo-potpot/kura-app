@@ -1,180 +1,576 @@
-import { ScrollView, View, StyleSheet, Platform } from 'react-native';
-import { Text, Chip, FAB } from 'react-native-paper';
+import {
+  View,
+  StyleSheet,
+  ActivityIndicator,
+  Pressable,
+} from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatlist';
+import { FlatList } from 'react-native-gesture-handler';
+import {
+  Text,
+  Chip,
+  Snackbar,
+  FAB,
+  Portal,
+  Dialog,
+  Button,
+} from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Link, useFocusEffect } from 'expo-router';
 
-import { COLORS } from '@/theme/kura-theme';
+import { SyncStatusIndicator } from '@/components/SyncStatusIndicator';
+import { resetLocalDb } from '@/features/planning/lib/resetLocalPlanning';
+import { getDb } from '@/lib/db';
+import { CircularProgressRing } from '@/features/planning/components/CircularProgressRing';
+import { MapToggleSection } from '@/features/planning/components/MapToggleSection';
+import { PlanningCard } from '@/features/planning/components/PlanningCard';
+import { LunchBreakBanner } from '@/features/planning/components/LunchBreakBanner';
+import { UrgencyBottomSheet } from '@/features/planning/components/UrgencyBottomSheet';
+import { useAddUrgency } from '@/features/planning/hooks/useAddUrgency';
+import { computeLunchBreak } from '@/features/planning/utils/planning-utils';
+import { useAbsentPatient } from '@/features/planning/hooks/useAbsentPatient';
+import { useCompleteVisit } from '@/features/planning/hooks/useCompleteVisit';
+import { useOptimizePlanning } from '@/features/planning/hooks/useOptimizePlanning';
+import { usePlanningPreferences } from '@/features/planning/hooks/usePlanningPreferences';
+import { useReorderPlanning } from '@/features/planning/hooks/useReorderPlanning';
+import {
+  formatEtaSegmentLabel,
+  formatVisitClockLabel,
+  patientDisplayName,
+  usePlanning,
+} from '@/features/planning/hooks/usePlanning';
 import { useAuthStore } from '@/features/auth/stores/auth-store';
+import type { PlanningVisitRow } from '@/features/planning/model/types';
+import { COLORS } from '@/theme/kura-theme';
+import {
+  DEFAULT_CARE_TYPE_LABEL,
+  openNativeMapsNavigation,
+} from '@/features/planning/utils/planning-utils';
 
-const DAYS_FR = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-const MONTHS_FR = [
-  'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
-];
-
-function formatToday(): string {
-  const now = new Date();
-  return `${DAYS_FR[now.getDay()]} ${now.getDate()} ${MONTHS_FR[now.getMonth()]}`;
-}
-
-const MOCK_VISITS = [
-  {
-    id: '1',
-    patientName: 'Marie Dupont',
-    time: '08:30',
-    address: '12 rue des Lilas, Lyon',
-    type: 'Pansement',
-    done: false,
-  },
-  {
-    id: '2',
-    patientName: 'Jean Martin',
-    time: '09:15',
-    address: '4 allée des Roses, Lyon',
-    type: 'Injection',
-    done: false,
-  },
-  {
-    id: '3',
-    patientName: 'Hélène Bernard',
-    time: '10:00',
-    address: '8 cours Gambetta, Lyon',
-    type: 'Bilan',
-    done: true,
-  },
-];
-
-const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
-  Pansement: { bg: '#E8F5E9', text: '#2E7D32' },
-  Injection: { bg: '#E3F2FD', text: '#1565C0' },
-  Bilan: { bg: '#FFF3E0', text: '#E65100' },
-};
-
-function VisitCard({
-  patientName,
-  time,
-  address,
-  type,
-  done,
-}: {
-  patientName: string;
-  time: string;
-  address: string;
-  type: string;
-  done: boolean;
-}) {
-  const badge = TYPE_COLORS[type] ?? { bg: '#F3E5F5', text: '#6A1B9A' };
+function PlanningCardSkeleton(): React.JSX.Element {
   return (
-    <View style={[styles.visitCard, done && styles.visitCardDone]}>
-      <View style={styles.visitTime}>
-        <Text style={[styles.visitTimeText, done && styles.visitTimeDone]}>{time}</Text>
-      </View>
-      <View style={styles.visitDivider} />
-      <View style={styles.visitInfo}>
-        <View style={styles.visitRow}>
-          <Text style={[styles.visitName, done && styles.visitNameDone]} numberOfLines={1}>
-            {patientName}
-          </Text>
-          <View style={[styles.typeBadge, { backgroundColor: badge.bg }]}>
-            <Text style={[styles.typeBadgeText, { color: badge.text }]}>{type}</Text>
-          </View>
-        </View>
-        <View style={styles.visitAddressRow}>
-          <MaterialCommunityIcons
-            name="map-marker-outline"
-            size={12}
-            color={done ? COLORS.textMuted : COLORS.textSecondary}
-          />
-          <Text
-            style={[styles.visitAddress, done && styles.visitAddressDone]}
-            numberOfLines={1}
-          >
-            {address}
-          </Text>
-        </View>
-      </View>
-      {done && (
-        <MaterialCommunityIcons name="check-circle" size={20} color={COLORS.teal} style={styles.doneIcon} />
-      )}
+    <View style={styles.skelCard}>
+      <View style={styles.skelLineShort} />
+      <View style={styles.skelLineLong} />
     </View>
   );
 }
 
 export default function PlanningScreen(): React.JSX.Element {
   const user = useAuthStore((s) => s.user);
-  const firstName = user?.name?.split(' ')[0] ?? 'Dr';
-  const todo = MOCK_VISITS.filter((v) => !v.done);
-  const done = MOCK_VISITS.filter((v) => v.done);
+  const firstName = user?.name?.split(' ')[0] ?? 'IDEL';
+
+  const {
+    visits,
+    sortedEtaSlices,
+    completedVisits,
+    totalVisits,
+    totalEtaMinutes,
+    hasPendingSync,
+    isLoading,
+    showSkeleton,
+    headerDateLabel,
+    pins,
+    refetchPlanning,
+  } = usePlanning();
+
+  const {
+    draggableRows,
+    onDragBegin,
+    onDragEnd,
+    snackbarVisible,
+    snackbarActionLabel,
+    onUndoSnackbarPress,
+    onDismissSnackbar,
+    infoSnackbarVisible,
+    infoSnackbarMessage,
+    onDismissInfoSnackbar,
+  } = useReorderPlanning(visits, refetchPlanning);
+
+  const {
+    optimize,
+    tryFirstFocusOptimizeIfEligible,
+    isOptimizing,
+    explanationByEntryId,
+  } = useOptimizePlanning(refetchPlanning);
+
+  const {
+    preferences,
+    preferencesReady: manualPreferencesReady,
+  } = usePlanningPreferences();
+  const manualModePur = preferences.manualModePur;
+  const dayStartMinutes = preferences.dayStartMinutes;
+  const clockOptions = useMemo(
+    () => ({
+      pauseStartMinutes: preferences.pauseStartMinutes,
+      lunchDurationMinutes: preferences.lunchDurationMinutes,
+    }),
+    [preferences.pauseStartMinutes, preferences.lunchDurationMinutes],
+  );
+  const lunchBreak = useMemo(
+    () => computeLunchBreak(sortedEtaSlices, dayStartMinutes, clockOptions),
+    [sortedEtaSlices, dayStartMinutes, clockOptions],
+  );
+
+  const {
+    confirmAndMarkAbsent,
+    absentSnackbarVisible,
+    absentSnackbarMessage,
+    onAbsentUndoPress,
+    onAbsentSnackbarDismiss,
+    absentInfoSnackbarVisible,
+    absentInfoMessage,
+    onAbsentInfoDismiss,
+  } = useAbsentPatient(refetchPlanning);
+
+  const {
+    markDone,
+    doneSnackbarVisible,
+    onDoneUndoPress,
+    onDoneSnackbarDismiss,
+    doneInfoSnackbarVisible,
+    doneInfoMessage,
+    onDoneInfoDismiss,
+  } = useCompleteVisit(refetchPlanning);
+
+  const {
+    candidates: urgencyCandidates,
+    loadCandidates: loadUrgencyCandidates,
+    suggestUrgencyInsertion,
+    addUrgency,
+  } = useAddUrgency(refetchPlanning);
+
+  const [confirmAbsentEntryId, setConfirmAbsentEntryId] = useState<string | null>(null);
+  const [urgencyOpen, setUrgencyOpen] = useState(false);
+
+  const listRef = useRef<FlatList<PlanningVisitRow>>(null);
+
+  const visitsRef = useRef(visits);
+  visitsRef.current = visits;
+
+  const absentDialogVisit = useMemo(
+    () => visits.find((x) => x.entryId === confirmAbsentEntryId) ?? null,
+    [visits, confirmAbsentEntryId],
+  );
+
+  const syncVariant = hasPendingSync ? 'pending' : 'synced';
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchPlanning();
+    }, [refetchPlanning]),
+  );
+
+  // Déclenche l'optimisation automatique au premier focus du jour dès que le chargement
+  // est terminé. Séparé de useFocusEffect pour éviter que isLoading/visits (qui changent
+  // pendant le chargement) ne recréent le callback et re-déclenchent useFocusEffect en boucle.
+  useEffect(() => {
+    void tryFirstFocusOptimizeIfEligible({
+      visitsCount: visits.length,
+      isLoading,
+      manualModePur,
+      manualPreferencesReady,
+    });
+  }, [
+    visits.length,
+    isLoading,
+    manualModePur,
+    manualPreferencesReady,
+    tryFirstFocusOptimizeIfEligible,
+  ]);
+
+  const nextNavigableVisit = useMemo(
+    () =>
+      visits.find(
+        (v) =>
+          (v.status === 'pending' || v.status === 'in_progress') &&
+          v.addressFull.trim().length > 0,
+      ),
+    [visits],
+  );
+
+  const navigateToNextVisit = useCallback(() => {
+    if (nextNavigableVisit !== undefined) {
+      openNativeMapsNavigation(
+        nextNavigableVisit.addressFull,
+        nextNavigableVisit.latitude,
+        nextNavigableVisit.longitude,
+      );
+    }
+  }, [nextNavigableVisit]);
+
+  const onPlanningPinSelect = useCallback(
+    (entryId: string) => {
+      const idx = draggableRows.findIndex((v) => v.entryId === entryId);
+      if (idx < 0) return;
+      const flat = listRef.current;
+      if (flat === null) return;
+      requestAnimationFrame(() => {
+        try {
+          flat.scrollToIndex({ index: idx, animated: true, viewPosition: 0.35 });
+          flat.flashScrollIndicators();
+        } catch {
+          flat.scrollToOffset({ offset: Math.max(0, idx * 140), animated: true });
+        }
+      });
+    },
+    [draggableRows],
+  );
+
+  const renderPlanningItem = useCallback(
+    ({
+      item: v,
+      drag,
+      isActive,
+    }: {
+      item: PlanningVisitRow;
+      drag: () => void;
+      isActive: boolean;
+    }): React.ReactNode => (
+      <ScaleDecorator activeScale={1.015}>
+        {lunchBreak !== null && !isActive && v.orderIndex === lunchBreak.beforeOrderIndex ? (
+          <LunchBreakBanner
+            startMinutes={lunchBreak.startMinutes}
+            durationMinutes={lunchBreak.durationMinutes}
+          />
+        ) : null}
+        <PlanningCard
+          patientDisplayName={patientDisplayName(v)}
+          addressShort={v.addressShort}
+          addressForNavigation={v.addressFull}
+          latitude={v.latitude}
+          longitude={v.longitude}
+          estimatedClockLabel={formatVisitClockLabel(v, sortedEtaSlices, dayStartMinutes, clockOptions)}
+          careTypeLabel={DEFAULT_CARE_TYPE_LABEL}
+          etaMinutesLabel={formatEtaSegmentLabel(v.etaMinutes)}
+          status={v.status}
+          orderIndex={v.orderIndex}
+          placementExplanation={explanationByEntryId.get(v.entryId) ?? null}
+          addressGeocoded={v.latitude !== null && v.longitude !== null}
+          drag={drag}
+          dragActive={isActive}
+          swipeEnabled={!isActive}
+          onSwipeAbsent={() => {
+            setConfirmAbsentEntryId(v.entryId);
+          }}
+          onSwipeComplete={
+            v.status === 'pending' || v.status === 'in_progress'
+              ? () => { void markDone(v.entryId, v.status); }
+              : undefined
+          }
+          onSwipeNavigate={(addr, lat, lng) => {
+            openNativeMapsNavigation(addr, lat, lng);
+          }}
+        />
+      </ScaleDecorator>
+    ),
+    [dayStartMinutes, clockOptions, lunchBreak, explanationByEntryId, sortedEtaSlices],
+  );
+
+  const listHeader = (
+    <>
+      <MapToggleSection
+        pins={pins}
+        onPinSelect={onPlanningPinSelect}
+        onNavigateNext={navigateToNextVisit}
+        canNavigateNext={nextNavigableVisit !== undefined}
+      />
+
+      <View style={styles.filterRow}>
+        <Chip selected style={styles.filterChip} compact>
+          {"Aujourd'hui"}
+        </Chip>
+        <Chip style={styles.filterChip} compact disabled>
+          Cette semaine
+        </Chip>
+      </View>
+
+
+      {totalVisits > 0 && !manualModePur && (
+        <View style={styles.optimizeRow}>
+          <Pressable
+            onPress={() => {
+              void optimize();
+            }}
+            disabled={isOptimizing}
+            style={({ pressed }) => [
+              styles.optimizeBtn,
+              pressed && !isOptimizing && styles.optimizeBtnPressed,
+              isOptimizing && styles.optimizeBtnDisabled,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isOptimizing
+                ? 'Optimisation de la tournée en cours'
+                : 'Optimiser la tournée minimiser les trajets'
+            }
+            accessibilityState={{ disabled: isOptimizing }}
+          >
+            {isOptimizing ? (
+              <ActivityIndicator color="#fff" accessibilityLabel="Calcul en cours" />
+            ) : (
+              <MaterialCommunityIcons name="map-marker-path" size={20} color="#fff" />
+            )}
+            <Text style={styles.optimizeBtnText} maxFontSizeMultiplier={1.5}>
+              {isOptimizing ? 'Optimisation…' : 'Optimiser la tournée'}
+            </Text>
+          </Pressable>
+        </View>
+      )}
+    </>
+  );
 
   return (
     <View style={styles.root}>
-      {/* Header teal */}
-      <View style={[styles.header, { backgroundColor: COLORS.teal }]}>
+      <View style={[styles.header, { backgroundColor: COLORS.primaryDark }]}>
         <SafeAreaView edges={['top']}>
-          <View style={styles.headerContent}>
-            <View>
-              <Text style={styles.headerGreeting}>Bonjour, {firstName} 👋</Text>
-              <Text style={styles.headerDate}>{formatToday()}</Text>
+          <View style={styles.headerRow}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.headerGreeting} maxFontSizeMultiplier={1.5}>
+                Bonjour, {firstName} 👋
+              </Text>
+              <Text style={styles.headerDate} maxFontSizeMultiplier={1.5}>
+                {headerDateLabel}
+              </Text>
             </View>
-            <View style={styles.statsRow}>
-              <View style={styles.statBadge}>
-                <MaterialCommunityIcons name="account-group" size={14} color="#fff" />
-                <Text style={styles.statText}>{MOCK_VISITS.length} patients</Text>
-              </View>
-              <View style={styles.statBadge}>
-                <MaterialCommunityIcons name="road-variant" size={14} color="#fff" />
-                <Text style={styles.statText}>12 km</Text>
-              </View>
+            <CircularProgressRing
+              completed={completedVisits}
+              total={totalVisits}
+              accessibilityLabel={`Progression ${completedVisits} visites terminées sur ${totalVisits}`}
+            />
+          </View>
+
+          <View style={styles.headerBottom}>
+            <View style={styles.statBadge}>
+              <MaterialCommunityIcons name="timer-sand" size={14} color="#fff" />
+              <Text style={styles.statText} maxFontSizeMultiplier={1.5}>
+                ETA total ~{totalEtaMinutes} min
+              </Text>
+              {__DEV__ && (
+                <Pressable
+                  onPress={() => {
+                    void (async () => {
+                      const db = await getDb();
+                      await resetLocalDb(db);
+                      refetchPlanning();
+                    })();
+                  }}
+                  style={{ marginLeft: 8, backgroundColor: 'rgba(255,0,0,0.25)', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 }}
+                  accessibilityLabel="Reset DB dev"
+                >
+                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>🗑️ Reset DB</Text>
+                </Pressable>
+              )}
             </View>
+            <SyncStatusIndicator variant={syncVariant} />
           </View>
         </SafeAreaView>
       </View>
 
-      {/* Map placeholder */}
-      <View style={styles.mapPlaceholder}>
-        <MaterialCommunityIcons name="map-outline" size={32} color={COLORS.textMuted} />
-        <Text style={styles.mapPlaceholderText}>Carte de l'itinéraire</Text>
-        <Text style={styles.mapPlaceholderSub}>Disponible avec le module Planning</Text>
-      </View>
+      {isLoading && !showSkeleton && (
+        <View style={styles.centerPad}>
+          <ActivityIndicator color={COLORS.primary} accessibilityLabel="Chargement du planning" />
+        </View>
+      )}
 
-      {/* Filter chips */}
-      <View style={styles.filterRow}>
-        <Chip selected style={styles.filterChip} compact>Aujourd'hui</Chip>
-        <Chip style={styles.filterChip} compact>Cette semaine</Chip>
-      </View>
+      {showSkeleton && (
+        <View style={{ paddingHorizontal: 16, flex: 1 }}>
+          <PlanningCardSkeleton />
+          <PlanningCardSkeleton />
+        </View>
+      )}
 
-      {/* Visit lists */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.sectionLabel}>À FAIRE · {todo.length}</Text>
-        {todo.length === 0 ? (
-          <View style={styles.emptySection}>
-            <MaterialCommunityIcons name="check-all" size={28} color={COLORS.teal} />
-            <Text style={styles.emptySectionText}>Toutes les visites sont complétées !</Text>
+      {!showSkeleton && visits.length === 0 && !isLoading && (
+        <View style={[styles.scrollContent, styles.emptyOuter]}>
+          {listHeader}
+          <View style={styles.emptyWrap}>
+            <MaterialCommunityIcons name="calendar-blank-outline" size={48} color={COLORS.textMuted} />
+            <Text style={styles.emptyTitle} maxFontSizeMultiplier={1.5}>
+              {"Aucun patient planifié aujourd'hui"}
+            </Text>
+            <Link href="/patients" asChild>
+              <Pressable
+                style={styles.cta}
+                accessibilityRole="link"
+                accessibilityLabel="Voir mes patients"
+              >
+                <MaterialCommunityIcons name="account-group-outline" size={20} color="#fff" />
+                <Text style={styles.ctaText} maxFontSizeMultiplier={1.5}>
+                  Voir mes patients
+                </Text>
+              </Pressable>
+            </Link>
           </View>
-        ) : (
-          todo.map((v) => <VisitCard key={v.id} {...v} />)
-        )}
+        </View>
+      )}
 
-        {done.length > 0 && (
-          <>
-            <Text style={[styles.sectionLabel, { marginTop: 20 }]}>COMPLÉTÉS · {done.length}</Text>
-            {done.map((v) => <VisitCard key={v.id} {...v} />)}
-          </>
-        )}
-        <View style={{ height: 100 }} />
-      </ScrollView>
+      {!showSkeleton && visits.length > 0 && (
+        <DraggableFlatList
+          ref={listRef}
+          containerStyle={{ flex: 1 }}
+          contentContainerStyle={styles.draggableScrollContent}
+          data={draggableRows}
+          keyExtractor={(v) => v.entryId}
+          onDragBegin={() => {
+            onDragBegin();
+          }}
+          onDragEnd={(p): void => {
+            void onDragEnd({
+              data: p.data as PlanningVisitRow[],
+              from: p.from,
+              to: p.to,
+            });
+          }}
+          renderItem={renderPlanningItem}
+          ListHeaderComponent={listHeader}
+          onScrollToIndexFailed={({ index }) => {
+            listRef.current?.scrollToOffset({
+              offset: Math.max(0, index * 140),
+              animated: true,
+            });
+          }}
+        />
+      )}
 
-      <FAB
-        icon="plus"
-        style={styles.fab}
-        color="#fff"
-        onPress={() => {}}
-        accessibilityLabel="Ajouter une visite"
+      <Snackbar
+        visible={snackbarVisible && !absentSnackbarVisible}
+        duration={5000}
+        onDismiss={() => {
+          onDismissSnackbar();
+        }}
+        action={
+          snackbarActionLabel !== null
+            ? {
+                label: snackbarActionLabel,
+                accessibilityLabel: 'Annuler la modification récente',
+                onPress: () => {
+                  void onUndoSnackbarPress();
+                },
+              }
+            : undefined
+        }
+      >
+        Modification enregistrée
+      </Snackbar>
+
+      <Snackbar visible={infoSnackbarVisible} duration={3000} onDismiss={onDismissInfoSnackbar}>
+        {infoSnackbarMessage}
+      </Snackbar>
+
+      <Snackbar
+        visible={absentSnackbarVisible}
+        duration={5000}
+        onDismiss={onAbsentSnackbarDismiss}
+        action={{
+          label: 'Annuler',
+          accessibilityLabel: 'Annuler le retrait du patient',
+          onPress: () => {
+            void onAbsentUndoPress();
+          },
+        }}
+      >
+        {absentSnackbarMessage}
+      </Snackbar>
+
+      <Snackbar visible={absentInfoSnackbarVisible} duration={3000} onDismiss={onAbsentInfoDismiss}>
+        {absentInfoMessage}
+      </Snackbar>
+
+      <Snackbar
+        visible={doneSnackbarVisible}
+        duration={5000}
+        onDismiss={onDoneSnackbarDismiss}
+        action={{
+          label: 'Annuler',
+          accessibilityLabel: 'Annuler la fin du soin',
+          onPress: () => { void onDoneUndoPress(); },
+        }}
+      >
+        Soin terminé ✓
+      </Snackbar>
+
+      <Snackbar visible={doneInfoSnackbarVisible} duration={3000} onDismiss={onDoneInfoDismiss}>
+        {doneInfoMessage}
+      </Snackbar>
+
+      <Portal>
+        <Dialog
+          visible={confirmAbsentEntryId !== null}
+          onDismiss={() => {
+            setConfirmAbsentEntryId(null);
+          }}
+        >
+          <Dialog.Title maxFontSizeMultiplier={1.5}>
+            {absentDialogVisit !== null
+              ? `Retirer ${patientDisplayName(absentDialogVisit)} du planning ?`
+              : 'Retirer du planning ?'}
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text maxFontSizeMultiplier={1.5}>
+              Le patient sera marqué absent et les horaires de la tournée seront recalculés.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button
+              onPress={() => {
+                setConfirmAbsentEntryId(null);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              textColor="#C62828"
+              onPress={() => {
+                if (confirmAbsentEntryId !== null && absentDialogVisit !== null) {
+                  void confirmAndMarkAbsent(confirmAbsentEntryId, absentDialogVisit.status);
+                }
+                setConfirmAbsentEntryId(null);
+              }}
+            >
+              Retirer
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+      <UrgencyBottomSheet
+        visible={urgencyOpen}
+        onDismiss={() => {
+          setUrgencyOpen(false);
+        }}
+        candidates={urgencyCandidates}
+        onLoadCandidates={loadUrgencyCandidates}
+        visits={visits}
+        suggestInsertion={suggestUrgencyInsertion}
+        onConfirmUrgency={async (patientId, globalInsertIndex) => {
+          await addUrgency(patientId, globalInsertIndex, visitsRef.current);
+        }}
       />
+
+      {!showSkeleton && (
+        <>
+          <FAB
+            visible
+            icon="ambulance"
+            onPress={() => { setUrgencyOpen(true); }}
+            style={styles.urgencyFab}
+            color="#fff"
+            accessibilityLabel="Ajouter une urgence à la tournée"
+          />
+          <FAB
+            visible
+            icon="navigation-variant"
+            label="Patient suivant"
+            onPress={navigateToNextVisit}
+            disabled={nextNavigableVisit === undefined}
+            style={[styles.fabGroup, styles.fabFab]}
+            color="#fff"
+            accessibilityLabel="Lancer la navigation vers le prochain patient"
+          />
+        </>
+      )}
     </View>
   );
 }
@@ -182,12 +578,24 @@ export default function PlanningScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: COLORS.background },
   header: {
-    paddingBottom: 20,
+    paddingBottom: 16,
   },
-  headerContent: {
+  draggableScrollContent: { paddingHorizontal: 16, paddingBottom: 96 },
+  headerRow: {
+    flexDirection: 'row',
     paddingHorizontal: 20,
     paddingTop: 12,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     gap: 12,
+  },
+  headerLeft: { flex: 1 },
+  headerBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginTop: 12,
   },
   headerGreeting: {
     fontSize: 20,
@@ -196,148 +604,123 @@ const styles = StyleSheet.create({
   },
   headerDate: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.85)',
     marginTop: 2,
     textTransform: 'capitalize',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 8,
   },
   statBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     backgroundColor: 'rgba(255,255,255,0.18)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 20,
+    minHeight: 44,
   },
   statText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#fff',
     fontWeight: '600',
-  },
-  mapPlaceholder: {
-    height: 140,
-    backgroundColor: '#D1ECFA',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  mapPlaceholderText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  mapPlaceholderSub: {
-    fontSize: 11,
-    color: COLORS.textMuted,
   },
   filterRow: {
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    marginHorizontal: -16,
   },
   filterChip: { borderRadius: 20 },
-  scrollView: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16 },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.textMuted,
-    letterSpacing: 0.8,
-    marginBottom: 10,
+  urgencyFab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 96,
+    borderRadius: 16,
+    backgroundColor: COLORS.error,
   },
-  emptySection: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    gap: 8,
+  optimizeRow: {
+    paddingHorizontal: 16,
+    marginBottom: 6,
+    marginHorizontal: -16,
   },
-  emptySectionText: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-  },
-  visitCard: {
+  optimizeBtn: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 22,
+    minHeight: 48,
+  },
+  optimizeBtnPressed: {
+    opacity: 0.9,
+  },
+  optimizeBtnDisabled: {
+    opacity: 0.75,
+  },
+  optimizeBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  scrollContent: { flex: 1 },
+  emptyOuter: { justifyContent: 'flex-start', paddingHorizontal: 16 },
+  centerPad: { paddingVertical: 24, alignItems: 'center' },
+  emptyWrap: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    gap: 16,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  cta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 24,
+    minHeight: 48,
+  },
+  ctaText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  skelCard: {
     backgroundColor: COLORS.white,
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
-    alignItems: 'center',
-    gap: 12,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
-      android: { elevation: 2 },
-    }),
+    gap: 10,
+    opacity: 0.85,
   },
-  visitCardDone: {
-    backgroundColor: '#F8FFFE',
-    opacity: 0.8,
-  },
-  visitTime: {
-    minWidth: 40,
-    alignItems: 'center',
-  },
-  visitTimeText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-  visitTimeDone: {
-    color: COLORS.textMuted,
-  },
-  visitDivider: {
-    width: 1,
-    height: 40,
+  skelLineShort: {
+    height: 12,
+    width: '35%',
+    borderRadius: 6,
     backgroundColor: '#E2E8F0',
   },
-  visitInfo: { flex: 1 },
-  visitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 4,
+  skelLineLong: {
+    height: 10,
+    width: '85%',
+    borderRadius: 6,
+    backgroundColor: '#EEF2F6',
   },
-  visitName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.textPrimary,
-    flex: 1,
-  },
-  visitNameDone: {
-    color: COLORS.textMuted,
-  },
-  typeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  typeBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  visitAddressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  visitAddress: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    flex: 1,
-  },
-  visitAddressDone: {
-    color: COLORS.textMuted,
-  },
-  doneIcon: { marginLeft: 4 },
-  fab: {
+  fabGroup: {
     position: 'absolute',
-    bottom: 24,
     right: 20,
+    bottom: 28,
+  },
+  fabFab: {
+    borderRadius: 16,
     backgroundColor: COLORS.primary,
-    borderRadius: 28,
   },
 });

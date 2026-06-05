@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useBiometric } from '@/features/auth/hooks/useBiometric';
 import { getIsOnline } from '@/lib/useNetworkStatus';
 import { setUnauthorizedHandler } from '@/lib/api-client';
+import { syncTransmissions } from '@/features/transmissions/services/syncTransmissions';
 import { BottomTabBar } from '@/components/BottomTabBar';
 import { COLORS } from '@/theme/kura-theme';
 
@@ -15,6 +17,18 @@ export default function AppLayout(): React.JSX.Element {
   const { getToken, isJwtExpired, refreshJwt, clearSession } = useAuth();
   const { isEnabled, authenticate } = useBiometric();
   const biometricFailsRef = useRef(0);
+
+  // Sync transmissions au retour au premier plan
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        void syncTransmissions();
+      }
+    });
+    // Sync initiale au démarrage
+    void syncTransmissions();
+    return () => sub.remove();
+  }, []);
 
   // Détection révocation session via 401 (AC2 story 1.7)
   useEffect(() => {

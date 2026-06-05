@@ -15,6 +15,7 @@
     "lint": "tsc --noEmit",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx seed/fixtures.ts",
+    "db:seed:bethune": "tsx --env-file=.env.local seed/bethune.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

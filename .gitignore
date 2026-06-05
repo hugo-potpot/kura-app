@@ -19,8 +19,16 @@ build/
 
 # Editor
 .vscode/
+.idea/
 *.swp
 *.swo
+
+# Outils IA / agents (config & tooling locaux, non versionnés)
+.claude/
+.mcp.json
+.agentvibes/
+_bmad/
+# NB : _bmad-output/ (PRD, architecture, epics & stories) reste versionné — ce sont des livrables.
 
 # OS
 .DS_Store

@@ -69,6 +69,7 @@ export function useLogin(): UseLoginReturn {
         } else {
           const apiErr = err as { response?: { status: number } };
           if (!apiErr.response) {
+            console.log(apiErr);
             setError('Impossible de se connecter au serveur. Vérifiez votre connexion internet.');
           } else if (apiErr.response.status === 401) {
             setError('Email ou mot de passe incorrect');

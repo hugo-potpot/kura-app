@@ -27,9 +27,22 @@ vi.mock('@kura/db', () => ({
     longitude: 'longitude',
     phone: 'phone',
     treatingDoctor: 'treating_doctor',
+    assignedIdelId: 'assigned_idel_id',
     status: 'status',
     updatedAt: 'updated_at',
     createdAt: 'created_at',
+  },
+  transmissionsPg: {
+    id: 'id',
+    patientId: 'patient_id',
+    createdAt: 'created_at',
+  },
+  authUser: {
+    id: 'id',
+    name: 'name',
+    structureId: 'structure_id',
+    role: 'role',
+    disabled: 'disabled',
   },
 }));
 
@@ -71,9 +84,27 @@ function makeSelectMock(returnValue: unknown) {
     from: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
     orderBy: vi.fn().mockResolvedValue(returnValue),
+    innerJoin: vi.fn().mockReturnThis(),
   };
   vi.mocked(db.select).mockReturnValue(chain as never);
   return chain;
+}
+
+/**
+ * Mock pour plusieurs appels sequentiels à db.select().
+ * Chaque appel retourne la valeur correspondante dans returnValues[].
+ */
+function makeSequentialSelectMocks(...returnValues: unknown[]) {
+  let callIndex = 0;
+  vi.mocked(db.select).mockImplementation(() => {
+    const val = returnValues[callIndex++] ?? [];
+    return {
+      from: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockResolvedValue(val),
+      innerJoin: vi.fn().mockReturnThis(),
+    } as never;
+  });
 }
 
 describe('POST /api/v1/patients', () => {
@@ -191,23 +222,56 @@ describe('GET /api/v1/patients', () => {
     expect(res.status).toBe(401);
   });
 
-  it('retourne la liste de tous les patients pour un admin', async () => {
+  it('retourne la liste vide sans erreur (0 patients → pas de requêtes supplémentaires)', async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(ADMIN_SESSION as never);
-    const mockPatients = [
-      { id: 'p-1', firstName: 'Marie', lastName: 'Dupont', status: 'active', structureId: 'struct-1' },
-      { id: 'p-2', firstName: 'Jean', lastName: 'Martin', status: 'archived', structureId: 'struct-1' },
-    ];
-    makeSelectMock(mockPatients);
+    makeSelectMock([]);
     const req = new NextRequest('http://localhost/api/v1/patients');
     const res = await GET(req);
     expect(res.status).toBe(200);
-    const body = await res.json() as { data: { patients: { id: string }[] } };
+    const body = await res.json() as { data: { patients: unknown[] } };
+    expect(body.data.patients).toHaveLength(0);
+  });
+
+  it('retourne la liste des patients avec lastTransmissionAt et assignedIdelName pour un admin', async () => {
+    vi.mocked(auth.api.getSession).mockResolvedValue(ADMIN_SESSION as never);
+
+    const mockPatients = [
+      { id: 'p-1', firstName: 'Marie', lastName: 'Dupont', status: 'active', structureId: 'struct-1', assignedIdelId: 'idel-1', updatedAt: new Date() },
+      { id: 'p-2', firstName: 'Jean', lastName: 'Martin', status: 'archived', structureId: 'struct-1', assignedIdelId: null, updatedAt: new Date() },
+    ];
+    const mockTransmissions = [
+      { patientId: 'p-1', createdAt: new Date('2026-05-20T10:00:00Z') },
+    ];
+    const mockIdels = [
+      { id: 'idel-1', name: 'Sophie Infirmière' },
+    ];
+
+    // 3 appels séquentiels : patients, transmissions, idels
+    makeSequentialSelectMocks(mockPatients, mockTransmissions, mockIdels);
+
+    const req = new NextRequest('http://localhost/api/v1/patients');
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+
+    const body = await res.json() as { data: { patients: { id: string; lastTransmissionAt: string | null; assignedIdelName: string | null }[] } };
     expect(body.data.patients).toHaveLength(2);
+
+    const patient1 = body.data.patients.find((p) => p.id === 'p-1');
+    expect(patient1?.lastTransmissionAt).not.toBeNull();
+    expect(patient1?.assignedIdelName).toBe('Sophie Infirmière');
+
+    const patient2 = body.data.patients.find((p) => p.id === 'p-2');
+    expect(patient2?.lastTransmissionAt).toBeNull();
+    expect(patient2?.assignedIdelName).toBeNull();
   });
 
   it('retourne 200 pour un doctor (lecture seule, tous les patients de la structure)', async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(DOCTOR_SESSION as never);
-    makeSelectMock([{ id: 'p-1', firstName: 'Marie', lastName: 'Dupont', structureId: 'struct-1' }]);
+    makeSequentialSelectMocks(
+      [{ id: 'p-1', firstName: 'Marie', lastName: 'Dupont', structureId: 'struct-1', assignedIdelId: null }],
+      [], // transmissions
+      [], // idels
+    );
     const req = new NextRequest('http://localhost/api/v1/patients');
     const res = await GET(req);
     expect(res.status).toBe(200);
@@ -215,8 +279,12 @@ describe('GET /api/v1/patients', () => {
 
   it('retourne uniquement les patients assignés pour un IDEL', async () => {
     vi.mocked(auth.api.getSession).mockResolvedValue(IDEL_SESSION as never);
-    const assignedPatient = { id: 'p-1', firstName: 'Marie', lastName: 'Dupont', structureId: 'struct-1', assignedIdelId: 'user-2' };
-    makeSelectMock([assignedPatient]);
+    const assignedPatient = { id: 'p-1', firstName: 'Marie', lastName: 'Dupont', structureId: 'struct-1', assignedIdelId: null };
+    makeSequentialSelectMocks(
+      [assignedPatient],
+      [], // transmissions
+      [], // idels
+    );
     const req = new NextRequest('http://localhost/api/v1/patients');
     const res = await GET(req);
     expect(res.status).toBe(200);

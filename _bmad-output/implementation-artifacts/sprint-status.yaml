@@ -73,28 +73,29 @@ development_status:
   3-3-attribution-des-patients-aux-idel-isolation-multi-tenant: review
   3-4-recherche-filtrage-liste-des-patients: review
   3-5-archivage-suppression-conformite-rgpd: review
-  3-6-visualisation-des-constantes-graphiques-patient: backlog
+  3-6-visualisation-des-constantes-graphiques-patient: review
   epic-3-retrospective: optional
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Epic 4 : Planning Intelligent de Tournée
   # ─────────────────────────────────────────────────────────────────────────────
-  epic-4: backlog
-  4-1-affichage-du-planning-quotidien-ecran-principal: backlog
-  4-2-generation-automatique-du-planning-optimise-algorithme-ia: backlog
-  4-3-modification-manuelle-du-planning-drag-drop: backlog
-  4-4-gestion-des-patients-absents-urgences: backlog
-  4-5-carte-itineraire-navigation-gps: backlog
-  4-6-preferences-de-planning: backlog
+  epic-4: in-progress
+  4-1-affichage-du-planning-quotidien-ecran-principal: review
+  4-2-generation-automatique-du-planning-optimise-algorithme-ia: review
+  4-3-modification-manuelle-du-planning-drag-drop: review
+  4-4-gestion-des-patients-absents-urgences: review
+  4-5-carte-itineraire-navigation-gps: review
+  4-6-preferences-de-planning: review
+  4-7-terminer-un-soin: review
   epic-4-retrospective: optional
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Epic 5 : Transmissions & Documentation Médicale
   # ─────────────────────────────────────────────────────────────────────────────
-  epic-5: backlog
-  5-1-saisie-de-transmission-par-dictee-vocale-ia: backlog
+  epic-5: in-progress
+  5-1-saisie-de-transmission-par-dictee-vocale-ia: review
   5-2-validation-obligatoire-de-la-transcription-ia-conformite-hds: backlog
-  5-3-saisie-de-transmission-par-texte-templates: backlog
+  5-3-saisie-de-transmission-par-texte-templates: review
   5-4-enregistrement-des-constantes-vitales: backlog
   5-5-historique-des-transmissions-audit-trail: backlog
   epic-5-retrospective: optional
@@ -122,11 +123,13 @@ development_status:
   # ─────────────────────────────────────────────────────────────────────────────
   # Epic 8 : Back Office Web d'Administration
   # ─────────────────────────────────────────────────────────────────────────────
-  epic-8: backlog
-  8-1-tableau-de-bord-acces-back-office: backlog
-  8-2-gestion-de-la-liste-des-patients-back-office: backlog
+  epic-8: in-progress
+  8-1-tableau-de-bord-acces-back-office: review
+  8-2-gestion-de-la-liste-des-patients-back-office: review
   8-3-import-export-csv-des-patients: backlog
-  8-4-vue-des-idel-modification-des-plannings: backlog
+  8-4-vue-des-idel-modification-des-plannings: review
+  8-5-sync-planning-mobile: review
+  8-6-vue-semaine-planning-back-office: review
   epic-8-retrospective: optional
 
   # ─────────────────────────────────────────────────────────────────────────────
